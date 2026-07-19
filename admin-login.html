@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>企業管理者ログイン | 助成金対応LMS</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Yu Gothic", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: #eef1f6;
+  color: #22252b;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(20,30,60,0.10);
+  border: 1px solid #e2e5ea;
+  padding: 40px 36px 36px;
+}
+.brand { text-align: center; margin-bottom: 28px; }
+.brand .mark {
+  width: 46px; height: 46px; border-radius: 12px;
+  background: #1F3864; color: #fff; font-weight: 700; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+}
+.brand .role-tag {
+  display: inline-block; font-size: 11px; font-weight: 700; color: #1F3864;
+  background: #DCE6F1; padding: 3px 10px; border-radius: 6px; margin-bottom: 10px;
+}
+.brand h1 { font-size: 18px; font-weight: 700; margin: 0 0 4px; color: #1F3864; }
+.brand p { font-size: 12.5px; color: #767b85; margin: 0; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12.5px; color: #444; margin-bottom: 6px; font-weight: 500; }
+.field input {
+  width: 100%; height: 42px; border: 1px solid #d8dbe2; border-radius: 8px;
+  padding: 0 12px; font-size: 14px; color: #22252b; background: #fafbfc;
+  outline: none;
+}
+.field input:focus { border-color: #1F3864; background: #fff; }
+.row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.remember { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #555; }
+.forgot { font-size: 12.5px; color: #1F3864; text-decoration: none; }
+.forgot:hover { text-decoration: underline; }
+.btn-primary {
+  width: 100%; height: 44px; border: none; border-radius: 8px;
+  background: #1F3864; color: #fff; font-size: 14.5px; font-weight: 700;
+  cursor: pointer;
+}
+.btn-primary:hover { background: #16294d; }
+.btn-primary:disabled { background: #b9c1d1; cursor: not-allowed; }
+.divider { display: flex; align-items: center; gap: 10px; margin: 22px 0; color: #b3b6bd; font-size: 11px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e6e8ec; }
+.footer-links { text-align: center; margin-top: 22px; font-size: 12px; color: #9296a0; }
+.footer-links a { color: #767b85; text-decoration: none; margin: 0 6px; }
+.err {
+  display: none;
+  background: #fdeceb; border: 1px solid #f3c6c2; color: #a13d34;
+  font-size: 12.5px; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px;
+}
+.demo-note {
+  text-align: center; font-size: 11.5px; color: #9296a0; margin-top: 16px;
+}
+.back-link {
+  text-align: center; font-size: 12.5px; color: #1F3864; font-weight: 700; text-decoration: none; display: block;
+}
+.back-link:hover { text-decoration: underline; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth.js"></script>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">
+    <div class="mark">LMS</div>
+    <div class="role-tag">企業管理者専用</div>
+    <h1>管理者用ログイン</h1>
+    <p>助成金対応LMS 企業管理者ポータル</p>
+  </div>
+
+  <div class="err" id="loginErr"></div>
+
+  <form id="loginForm">
+    <div class="field">
+      <label for="email">メールアドレス</label>
+      <input id="email" type="email" placeholder="admin@company.jp" autocomplete="email" value="admin@sample.co.jp" />
+    </div>
+    <div class="field">
+      <label for="password">パスワード</label>
+      <input id="password" type="password" placeholder="パスワードを入力" autocomplete="current-password" value="admin1234" />
+    </div>
+    <div class="row">
+      <label class="remember"><input type="checkbox" checked style="width:14px;height:14px;margin:0" /> ログイン状態を保持する</label>
+      <a class="forgot" href="#">パスワードをお忘れですか</a>
+    </div>
+    <button type="submit" class="btn-primary" id="loginBtn">管理者としてログイン</button>
+  </form>
+
+  <div class="divider">または</div>
+  <a class="back-link" href="index.html">受講者の方はこちら（受講者用ログイン）</a>
+
+  <div class="demo-note">※ デモ用アカウント：admin@sample.co.jp / admin1234</div>
+
+  <div class="footer-links">
+    <a href="#">利用規約</a>・<a href="#">プライバシーポリシー</a>・<a href="#">お問い合わせ</a>
+  </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var email = document.getElementById('email').value.trim();
+  var pw = document.getElementById('password').value;
+  var errBox = document.getElementById('loginErr');
+  errBox.style.display = 'none';
+
+  if (!email || !pw) {
+    errBox.textContent = 'メールアドレスとパスワードを入力してください。';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  var btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'ログイン中...';
+
+  sha256Hex(pw).then(function (hash) {
+    return sb.from('app_users').select('*, companies(name)').eq('email', email).maybeSingle().then(function (res) {
+      btn.disabled = false;
+      btn.textContent = '管理者としてログイン';
+
+      if (res.error || !res.data) {
+        errBox.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+        errBox.style.display = 'block';
+        return;
+      }
+      var u = res.data;
+      if (u.password_hash !== hash) {
+        errBox.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.role !== 'company_admin') {
+        errBox.textContent = 'このアカウントは企業管理者ではありません。受講者用ログイン画面をご利用ください。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.status === 'suspended') {
+        errBox.textContent = 'このアカウントは停止されています。運営にお問い合わせください。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.status !== 'active') {
+        errBox.textContent = 'このアカウントはまだ有効化されていません。運営にお問い合わせください。';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      saveSession({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        company_id: u.company_id,
+        company_name: u.companies ? u.companies.name : null
+      });
+      window.location.href = 'admin.html';
+    });
+  });
+});
+</script>
+
+</body>
+</html>

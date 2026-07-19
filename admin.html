@@ -84,7 +84,10 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
     <div class="name">助成金対応LMS</div>
     <span class="role">企業管理者</span>
   </div>
-  <a class="back" href="mypage.html">受講者画面へ</a>
+  <div>
+    <a class="back" href="mypage.html">受講者画面へ</a>
+    <a class="back" href="#" id="logoutLink" style="margin-left:14px">ログアウト</a>
+  </div>
 </header>
 
 <div class="layout">
@@ -137,6 +140,10 @@ var session = requireRole(['company_admin']);
 <script>
 if (session) {
   document.getElementById('companyNameLabel').textContent = session.company_name || '（未所属）';
+  document.getElementById('logoutLink').addEventListener('click', function (e) {
+    e.preventDefault();
+    logout();
+  });
 
   document.querySelectorAll('.nav-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {

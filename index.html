@@ -115,7 +115,8 @@ body {
     <div class="divider">または</div>
     <div class="switch-link" id="showSignup">初めての方はこちら（新規アカウント登録）</div>
 
-    <div class="demo-note">※ デモ用アカウント：受講者 tanaka@sample.co.jp / demo1234　・　企業管理者 admin@sample.co.jp / admin1234　・　自社運用者 operator@sample.co.jp / operator1234</div>
+    <div class="demo-note">※ デモ用アカウント：受講者 tanaka@sample.co.jp / demo1234</div>
+    <div class="demo-note" style="margin-top:6px"><a href="admin-login.html" style="color:#1F3864;font-weight:700;text-decoration:none">企業管理者の方はこちら（管理者用ログイン）</a></div>
   </div>
 
   <!-- 新規登録 -->
@@ -221,6 +222,11 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
       }
       if (u.status === 'rejected') {
         errBox.textContent = '登録は承認されませんでした。管理者にお問い合わせください。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.role === 'company_admin') {
+        errBox.innerHTML = '企業管理者の方は<a href="admin-login.html" style="color:#a13d34;font-weight:700">管理者用ログイン画面</a>からログインしてください。';
         errBox.style.display = 'block';
         return;
       }

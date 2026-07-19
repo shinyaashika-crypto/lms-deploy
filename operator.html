@@ -94,7 +94,10 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
     <div class="name">助成金対応LMS</div>
     <span class="role">自社運用者</span>
   </div>
-  <a class="back" href="mypage.html">受講者画面へ</a>
+  <div>
+    <a class="back" href="mypage.html">受講者画面へ</a>
+    <a class="back" href="#" id="logoutLink" style="margin-left:14px">ログアウト</a>
+  </div>
 </header>
 
 <div class="layout">
@@ -153,6 +156,11 @@ var session = requireRole(['operator']);
 </script>
 <script>
 if (session) {
+  document.getElementById('logoutLink').addEventListener('click', function (e) {
+    e.preventDefault();
+    logout();
+  });
+
   document.querySelectorAll('.nav-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.nav-btn').forEach(function (b) { b.classList.remove('active'); });
