@@ -44,6 +44,12 @@ body {
   outline: none;
 }
 .field input:focus { border-color: #1F3864; background: #fff; }
+.field select {
+  width: 100%; height: 42px; border: 1px solid #d8dbe2; border-radius: 8px;
+  padding: 0 12px; font-size: 14px; color: #22252b; background: #fafbfc;
+  outline: none;
+}
+.field select:focus { border-color: #1F3864; background: #fff; }
 .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .remember { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #555; }
 .forgot { font-size: 12.5px; color: #1F3864; text-decoration: none; }
@@ -130,7 +136,9 @@ body {
       </div>
       <div class="field">
         <label for="suCompany">会社名</label>
-        <input id="suCompany" type="text" placeholder="株式会社サンプル" value="株式会社サンプル" />
+        <select id="suCompany">
+          <option value="">読み込み中...</option>
+        </select>
       </div>
       <div class="field">
         <label for="suEmail">メールアドレス</label>
@@ -168,6 +176,20 @@ document.getElementById('showSignup').addEventListener('click', function () {
   signupView.style.display = 'block';
   titleText.textContent = '新規アカウント登録';
 });
+
+// ---- 会社名プルダウンの読み込み（運用者が登録済みの契約企業のみ選択可） ----
+function loadCompanyOptions() {
+  var select = document.getElementById('suCompany');
+  sb.from('companies').select('*').order('name', { ascending: true }).then(function (res) {
+    if (res.error || !res.data || !res.data.length) {
+      select.innerHTML = '<option value="">登録可能な会社がありません</option>';
+      return;
+    }
+    select.innerHTML = '<option value="">選択してください</option>' +
+      res.data.map(function (c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('');
+  });
+}
+loadCompanyOptions();
 document.getElementById('showLogin').addEventListener('click', function () {
   signupView.style.display = 'none';
   loginView.style.display = 'block';
@@ -248,15 +270,15 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
 document.getElementById('signupForm').addEventListener('submit', function (e) {
   e.preventDefault();
   var name = document.getElementById('suName').value.trim();
-  var companyName = document.getElementById('suCompany').value.trim();
+  var companyId = document.getElementById('suCompany').value;
   var email = document.getElementById('suEmail').value.trim();
   var pw = document.getElementById('suPassword').value;
   var pw2 = document.getElementById('suPassword2').value;
   var errBox = document.getElementById('signupErr');
   errBox.style.display = 'none';
 
-  if (!name || !companyName || !email || !pw || !pw2) {
-    errBox.textContent = 'すべての項目を入力してください。';
+  if (!name || !companyId || !email || !pw || !pw2) {
+    errBox.textContent = 'すべての項目を入力してください（会社が選択できない場合は運用者にお問い合わせください）。';
     errBox.style.display = 'block';
     return;
   }
@@ -284,39 +306,30 @@ document.getElementById('signupForm').addEventListener('submit', function (e) {
       return;
     }
 
-    sb.from('companies').select('id').eq('name', companyName).maybeSingle().then(function (companyRes) {
-      var ensureCompany = companyRes.data
-        ? Promise.resolve(companyRes.data.id)
-        : sb.from('companies').insert({ name: companyName }).select().then(function (r) {
-            return r.data[0].id;
-          });
-
-      ensureCompany.then(function (companyId) {
-        sha256Hex(pw).then(function (hash) {
-          sb.from('app_users').insert({
-            email: email,
-            password_hash: hash,
-            name: name,
-            company_id: companyId,
-            role: 'learner',
-            status: 'pending'
-          }).then(function (res) {
-            btn.disabled = false;
-            btn.textContent = '登録を申請する';
-            if (res.error) {
-              errBox.textContent = '登録に失敗しました：' + res.error.message;
-              errBox.style.display = 'block';
-              return;
-            }
-            document.getElementById('signupForm').reset();
-            signupView.style.display = 'none';
-            loginView.style.display = 'block';
-            titleText.textContent = 'Gravata_LMSにログイン';
-            var okBox = document.getElementById('loginOk');
-            okBox.textContent = '登録申請を受け付けました。企業管理者の承認後にログインできます。';
-            okBox.style.display = 'block';
-          });
-        });
+    sha256Hex(pw).then(function (hash) {
+      sb.from('app_users').insert({
+        email: email,
+        password_hash: hash,
+        name: name,
+        company_id: companyId,
+        role: 'learner',
+        status: 'pending'
+      }).then(function (res) {
+        btn.disabled = false;
+        btn.textContent = '登録を申請する';
+        if (res.error) {
+          errBox.textContent = '登録に失敗しました：' + res.error.message;
+          errBox.style.display = 'block';
+          return;
+        }
+        document.getElementById('signupForm').reset();
+        loadCompanyOptions();
+        signupView.style.display = 'none';
+        loginView.style.display = 'block';
+        titleText.textContent = 'Gravata_LMSにログイン';
+        var okBox = document.getElementById('loginOk');
+        okBox.textContent = '登録申請を受け付けました。企業管理者の承認後にログインできます。';
+        okBox.style.display = 'block';
       });
     });
   });

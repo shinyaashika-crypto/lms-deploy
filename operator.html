@@ -139,12 +139,23 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
     <div class="panel" id="p3">
       <h1>契約企業管理</h1>
       <div class="card">
-        <div class="toolbar"><button class="btn-primary btn" onclick="alert('デザイン確認用モックアップです')">企業を追加</button></div>
-        <table>
-          <tr><th>企業名</th><th>従業員数</th><th>利用中講座数</th><th>契約状態</th></tr>
-          <tr><td>株式会社サンプル</td><td>45名</td><td>3講座</td><td><span class="badge published">契約中</span></td></tr>
-          <tr><td>株式会社A</td><td>120名</td><td>5講座</td><td><span class="badge published">契約中</span></td></tr>
-          <tr><td>株式会社B</td><td>18名</td><td>1講座</td><td><span class="badge warn">更新待ち</span></td></tr>
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px">新規契約企業を追加</div>
+        <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div class="field"><label style="display:block;font-size:12px;color:#555;margin-bottom:6px">会社名</label><input type="text" id="newCoName" placeholder="株式会社サンプル" style="width:100%;height:36px;border:1px solid #d8dbe2;border-radius:8px;padding:0 10px;font-size:13px" /></div>
+          <div class="field"><label style="display:block;font-size:12px;color:#555;margin-bottom:6px">企業管理者 氏名</label><input type="text" id="newCoAdminName" placeholder="山田 太郎" style="width:100%;height:36px;border:1px solid #d8dbe2;border-radius:8px;padding:0 10px;font-size:13px" /></div>
+          <div class="field"><label style="display:block;font-size:12px;color:#555;margin-bottom:6px">企業管理者 メールアドレス</label><input type="email" id="newCoAdminEmail" placeholder="admin@company.jp" style="width:100%;height:36px;border:1px solid #d8dbe2;border-radius:8px;padding:0 10px;font-size:13px" /></div>
+          <div class="field"><label style="display:block;font-size:12px;color:#555;margin-bottom:6px">初期パスワード（8文字以上）</label><input type="password" id="newCoAdminPassword" placeholder="パスワードを入力" style="width:100%;height:36px;border:1px solid #d8dbe2;border-radius:8px;padding:0 10px;font-size:13px" /></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px">
+          <div id="addCompanyStatus" style="font-size:12.5px"></div>
+          <button class="btn-primary btn" id="addCompanyBtn">契約企業を追加</button>
+        </div>
+        <div class="note">会社と同時にその会社の企業管理者アカウントを1件作成します。作成後、管理者用ログイン画面からログインできます。</div>
+      </div>
+      <div class="card">
+        <div id="companyListStatus" style="font-size:12.5px;color:#767b85;margin-bottom:10px">読み込み中...</div>
+        <table id="companyTable" style="display:none">
+          <tr><th>企業名</th><th>企業管理者数</th><th>受講者数</th><th>登録日</th></tr>
         </table>
       </div>
     </div>
@@ -408,6 +419,117 @@ if (session) {
   });
 
   loadCourses();
+
+  // ---- 契約企業管理 ----
+  function loadCompanies() {
+    var statusEl = document.getElementById('companyListStatus');
+    var table = document.getElementById('companyTable');
+    statusEl.textContent = '読み込み中...';
+
+    Promise.all([
+      sb.from('companies').select('*').order('created_at', { ascending: false }),
+      sb.from('app_users').select('company_id, role')
+    ]).then(function (results) {
+      var compRes = results[0];
+      var userRes = results[1];
+      if (compRes.error) {
+        statusEl.textContent = '取得に失敗しました：' + compRes.error.message;
+        return;
+      }
+      var companies = compRes.data || [];
+      var users = userRes.data || [];
+
+      if (!companies.length) {
+        statusEl.textContent = 'まだ契約企業がありません。上のフォームから追加してください。';
+        table.style.display = 'none';
+        return;
+      }
+
+      statusEl.textContent = companies.length + '社が登録されています。';
+      table.style.display = 'table';
+      var rows = '<tr><th>企業名</th><th>企業管理者数</th><th>受講者数</th><th>登録日</th></tr>';
+      companies.forEach(function (c) {
+        var adminCount = users.filter(function (u) { return u.company_id === c.id && u.role === 'company_admin'; }).length;
+        var learnerCount = users.filter(function (u) { return u.company_id === c.id && u.role === 'learner'; }).length;
+        var d = new Date(c.created_at);
+        var dateStr = d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0');
+        var adminLabel = adminCount > 0 ? (adminCount + '名') : '<span style="color:#a13d34">0名（未設定）</span>';
+        rows += '<tr><td>' + c.name + '</td><td>' + adminLabel + '</td><td>' + learnerCount + '名</td><td>' + dateStr + '</td></tr>';
+      });
+      table.innerHTML = rows;
+    });
+  }
+
+  document.getElementById('addCompanyBtn').addEventListener('click', function () {
+    var name = document.getElementById('newCoName').value.trim();
+    var adminName = document.getElementById('newCoAdminName').value.trim();
+    var adminEmail = document.getElementById('newCoAdminEmail').value.trim();
+    var adminPw = document.getElementById('newCoAdminPassword').value;
+    var statusEl = document.getElementById('addCompanyStatus');
+    statusEl.style.color = '#a13d34';
+    statusEl.textContent = '';
+
+    if (!name || !adminName || !adminEmail || !adminPw) {
+      statusEl.textContent = 'すべての項目を入力してください。';
+      return;
+    }
+    if (adminPw.length < 8) {
+      statusEl.textContent = 'パスワードは8文字以上で設定してください。';
+      return;
+    }
+
+    var btn = document.getElementById('addCompanyBtn');
+    btn.disabled = true;
+    btn.textContent = '追加中...';
+
+    sb.from('app_users').select('id').eq('email', adminEmail).maybeSingle().then(function (existing) {
+      if (existing.data) {
+        btn.disabled = false;
+        btn.textContent = '契約企業を追加';
+        statusEl.textContent = 'このメールアドレスは既に登録されています。';
+        return;
+      }
+
+      sb.from('companies').insert({ name: name }).select().then(function (compRes) {
+        if (compRes.error) {
+          btn.disabled = false;
+          btn.textContent = '契約企業を追加';
+          statusEl.textContent = compRes.error.message.indexOf('duplicate') !== -1
+            ? 'この会社名は既に登録されています。'
+            : '会社の追加に失敗しました：' + compRes.error.message;
+          return;
+        }
+        var companyId = compRes.data[0].id;
+        sha256Hex(adminPw).then(function (hash) {
+          sb.from('app_users').insert({
+            email: adminEmail,
+            password_hash: hash,
+            name: adminName,
+            company_id: companyId,
+            role: 'company_admin',
+            status: 'active'
+          }).then(function (userRes) {
+            btn.disabled = false;
+            btn.textContent = '契約企業を追加';
+            if (userRes.error) {
+              statusEl.textContent = '会社は作成されましたが、管理者アカウントの作成に失敗しました：' + userRes.error.message;
+              loadCompanies();
+              return;
+            }
+            statusEl.style.color = '#1e7a4c';
+            statusEl.textContent = '「' + name + '」と企業管理者アカウントを作成しました。';
+            document.getElementById('newCoName').value = '';
+            document.getElementById('newCoAdminName').value = '';
+            document.getElementById('newCoAdminEmail').value = '';
+            document.getElementById('newCoAdminPassword').value = '';
+            loadCompanies();
+          });
+        });
+      });
+    });
+  });
+
+  loadCompanies();
 }
 </script>
 
