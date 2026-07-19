@@ -55,7 +55,9 @@ function roleHomePage(role) {
 
 function logout() {
   var session = getSession();
-  var redirectTo = (session && session.role === 'company_admin') ? 'admin-login.html' : 'index.html';
+  var redirectTo = 'index.html';
+  if (session && session.role === 'company_admin') redirectTo = 'admin-login.html';
+  if (session && session.role === 'operator') redirectTo = 'operator-login.html';
   clearSession();
   window.location.href = redirectTo;
 }

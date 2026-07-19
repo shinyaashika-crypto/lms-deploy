@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>企業管理者ログイン | Gravata_LMS</title>
+<title>自社運用者ログイン | Gravata_LMS</title>
 <style>
 :root { color-scheme: light; }
 * { box-sizing: border-box; }
@@ -73,6 +73,7 @@ body {
 }
 .back-link {
   text-align: center; font-size: 12.5px; color: #1F3864; font-weight: 700; text-decoration: none; display: block;
+  margin-bottom: 6px;
 }
 .back-link:hover { text-decoration: underline; }
 </style>
@@ -84,9 +85,9 @@ body {
 <div class="card">
   <div class="brand">
     <div class="mark">LMS</div>
-    <div class="role-tag">企業管理者専用</div>
-    <h1>管理者用ログイン</h1>
-    <p>Gravata_LMS 企業管理者ポータル</p>
+    <div class="role-tag">自社運用者専用</div>
+    <h1>運用者用ログイン</h1>
+    <p>Gravata_LMS 運用者ポータル</p>
   </div>
 
   <div class="err" id="loginErr"></div>
@@ -94,24 +95,24 @@ body {
   <form id="loginForm">
     <div class="field">
       <label for="email">メールアドレス</label>
-      <input id="email" type="email" placeholder="admin@company.jp" autocomplete="email" value="admin@sample.co.jp" />
+      <input id="email" type="email" placeholder="operator@company.jp" autocomplete="email" value="operator@sample.co.jp" />
     </div>
     <div class="field">
       <label for="password">パスワード</label>
-      <input id="password" type="password" placeholder="パスワードを入力" autocomplete="current-password" value="admin1234" />
+      <input id="password" type="password" placeholder="パスワードを入力" autocomplete="current-password" value="operator1234" />
     </div>
     <div class="row">
       <label class="remember"><input type="checkbox" checked style="width:14px;height:14px;margin:0" /> ログイン状態を保持する</label>
       <a class="forgot" href="#">パスワードをお忘れですか</a>
     </div>
-    <button type="submit" class="btn-primary" id="loginBtn">管理者としてログイン</button>
+    <button type="submit" class="btn-primary" id="loginBtn">運用者としてログイン</button>
   </form>
 
   <div class="divider">または</div>
   <a class="back-link" href="index.html">受講者の方はこちら（受講者用ログイン）</a>
-  <a class="back-link" href="operator-login.html">自社運用者の方はこちら（運用者用ログイン）</a>
+  <a class="back-link" href="admin-login.html">企業管理者の方はこちら（管理者用ログイン）</a>
 
-  <div class="demo-note">※ デモ用アカウント：admin@sample.co.jp / admin1234</div>
+  <div class="demo-note">※ デモ用アカウント：operator@sample.co.jp / operator1234</div>
 
   <div class="footer-links">
     <a href="#">利用規約</a>・<a href="#">プライバシーポリシー</a>・<a href="#">お問い合わせ</a>
@@ -139,7 +140,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
   sha256Hex(pw).then(function (hash) {
     return sb.from('app_users').select('*, companies(name)').eq('email', email).maybeSingle().then(function (res) {
       btn.disabled = false;
-      btn.textContent = '管理者としてログイン';
+      btn.textContent = '運用者としてログイン';
 
       if (res.error || !res.data) {
         errBox.textContent = 'メールアドレスまたはパスワードが正しくありません。';
@@ -152,8 +153,8 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
         errBox.style.display = 'block';
         return;
       }
-      if (u.role !== 'company_admin') {
-        errBox.textContent = 'このアカウントは企業管理者ではありません。受講者用ログイン画面をご利用ください。';
+      if (u.role !== 'operator') {
+        errBox.textContent = 'このアカウントは自社運用者ではありません。該当のログイン画面をご利用ください。';
         errBox.style.display = 'block';
         return;
       }
@@ -176,7 +177,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
         company_id: u.company_id,
         company_name: u.companies ? u.companies.name : null
       });
-      window.location.href = 'admin.html';
+      window.location.href = 'operator.html';
     });
   });
 });

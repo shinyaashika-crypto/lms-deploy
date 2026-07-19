@@ -123,6 +123,7 @@ body {
 
     <div class="demo-note">※ デモ用アカウント：受講者 tanaka@sample.co.jp / demo1234</div>
     <div class="demo-note" style="margin-top:6px"><a href="admin-login.html" style="color:#1F3864;font-weight:700;text-decoration:none">企業管理者の方はこちら（管理者用ログイン）</a></div>
+    <div class="demo-note" style="margin-top:6px"><a href="operator-login.html" style="color:#1F3864;font-weight:700;text-decoration:none">自社運用者の方はこちら（運用者用ログイン）</a></div>
   </div>
 
   <!-- 新規登録 -->
@@ -249,6 +250,11 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
       }
       if (u.role === 'company_admin') {
         errBox.innerHTML = '企業管理者の方は<a href="admin-login.html" style="color:#a13d34;font-weight:700">管理者用ログイン画面</a>からログインしてください。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.role === 'operator') {
+        errBox.innerHTML = '自社運用者の方は<a href="operator-login.html" style="color:#a13d34;font-weight:700">運用者用ログイン画面</a>からログインしてください。';
         errBox.style.display = 'block';
         return;
       }
