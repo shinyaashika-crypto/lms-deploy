@@ -55,10 +55,13 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
 .badge.progress { background: #DCE6F1; color: #1F3864; }
 .badge.done { background: #e3f5e9; color: #1e7a4c; }
 .badge.warn { background: #fdf2df; color: #8a6416; }
-.btn { height: 34px; padding: 0 14px; font-size: 12.5px; border-radius: 8px; border: 1px solid #d8dbe2; background: #fff; color: #22252b; cursor: pointer; }
+.badge.off { background: #f0f1f4; color: #767b85; }
+.btn { height: 30px; padding: 0 12px; font-size: 12px; border-radius: 8px; border: 1px solid #d8dbe2; background: #fff; color: #22252b; cursor: pointer; }
 .btn:hover { background: #f4f6fb; }
 .btn-primary { border: none; background: #1F3864; color: #fff; font-weight: 700; }
 .btn-primary:hover { background: #16294d; }
+.btn-danger { border-color: #f3c6c2; color: #a13d34; }
+.btn-danger:hover { background: #fdeceb; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
 .field label { display: block; font-size: 12px; color: #555; margin-bottom: 6px; }
 .field input, .field select { width: 100%; height: 36px; border: 1px solid #d8dbe2; border-radius: 8px; padding: 0 10px; font-size: 13px; background: #fafbfc; }
@@ -68,8 +71,10 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
 .tabs { display: flex; gap: 16px; border-bottom: 1px solid #e2e5ea; margin-bottom: 16px; }
 .tabs div { font-size: 13px; padding-bottom: 8px; cursor: pointer; color: #767b85; }
 .tabs div.active { color: #1F3864; font-weight: 700; border-bottom: 2px solid #1F3864; }
+.empty { color: #9296a0; font-size: 13px; padding: 20px 0; text-align: center; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
 
@@ -84,7 +89,7 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
 
 <div class="layout">
   <nav class="side">
-    <div class="company">株式会社サンプル</div>
+    <div class="company" id="companyNameLabel">-</div>
     <button class="nav-btn active" data-panel="p1">受講者管理一覧</button>
     <button class="nav-btn" data-panel="p2">レポート出力</button>
     <button class="nav-btn" data-panel="p3">受講者の招待</button>
@@ -94,16 +99,9 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
     <div class="panel active" id="p1">
       <h1>受講者管理一覧</h1>
       <div class="card">
-        <div class="toolbar">
-          <input type="text" placeholder="氏名で検索" style="width:180px" />
-          <select><option>すべての講座</option></select>
-          <select><option>すべての状態</option></select>
-        </div>
-        <table>
-          <tr><th>氏名</th><th>講座</th><th>進捗</th><th>状態</th></tr>
-          <tr><td>田中 一郎</td><td>データ分析基礎</td><td>65%</td><td><span class="badge progress">受講中</span></td></tr>
-          <tr><td>佐藤 花子</td><td>生成AI活用の基礎</td><td>100%</td><td><span class="badge done">修了</span></td></tr>
-          <tr><td>鈴木 健太</td><td>クラウドセキュリティ入門</td><td>5%</td><td><span class="badge warn">未着手に近い</span></td></tr>
+        <div id="learnerStatus" style="font-size:12.5px;color:#767b85;margin-bottom:10px">読み込み中...</div>
+        <table id="learnerTable" style="display:none">
+          <tr><th>氏名</th><th>メールアドレス</th><th>状態</th><th>操作</th></tr>
         </table>
       </div>
     </div>
@@ -125,17 +123,8 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
     <div class="panel" id="p3">
       <h1>受講者の招待・一括登録</h1>
       <div class="card">
-        <div class="tabs">
-          <div class="active">個別登録</div>
-          <div>CSV一括登録</div>
-        </div>
-        <div class="grid2">
-          <div class="field"><label>氏名</label><input type="text" placeholder="氏名" /></div>
-          <div class="field"><label>メールアドレス</label><input type="text" placeholder="メールアドレス" /></div>
-        </div>
-        <div class="field" style="margin-bottom:14px"><label>割り当てる講座</label><select><option>データ分析基礎</option></select></div>
-        <div style="display:flex;justify-content:flex-end">
-          <button class="btn-primary btn" onclick="alert('デザイン確認用モックアップです')">招待メールを送信</button>
+        <div class="preview" style="margin-bottom:0">
+          受講者はログイン画面の「新規アカウント登録」から自分でアカウントを申請できるようになりました。申請されたアカウントは「受講者管理一覧」タブから承認してください。
         </div>
       </div>
     </div>
@@ -143,79 +132,157 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
 </div>
 
 <script>
-document.querySelectorAll('.nav-btn').forEach(function(btn){
-  btn.addEventListener('click', function(){
-    document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
-    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
-    btn.classList.add('active');
-    document.getElementById(btn.dataset.panel).classList.add('active');
+var session = requireRole(['company_admin']);
+</script>
+<script>
+if (session) {
+  document.getElementById('companyNameLabel').textContent = session.company_name || '（未所属）';
+
+  document.querySelectorAll('.nav-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.nav-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.panel).classList.add('active');
+    });
   });
-});
 
-var SUPABASE_URL = 'https://aljqmldikmnnprxucnva.supabase.co';
-var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsanFtbGRpa21ubnByeHVjbnZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjczMjgsImV4cCI6MjEwMDA0MzMyOH0.D5pB45t0QUE3hj0WtO8zxufVqKVVOfJhowHpbAUEJrE';
-var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-var currentRows = [];
+  var statusBadge = {
+    pending: '<span class="badge warn">承認待ち</span>',
+    active: '<span class="badge done">有効</span>',
+    suspended: '<span class="badge off">停止中</span>',
+    rejected: '<span class="badge off">却下済み</span>'
+  };
 
-function fmtDate(iso) {
-  var d = new Date(iso);
-  return d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + ' ' +
-    String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
-}
+  function loadLearners() {
+    var statusEl = document.getElementById('learnerStatus');
+    var table = document.getElementById('learnerTable');
+    statusEl.textContent = '読み込み中...';
+    sb.from('app_users').select('*').eq('company_id', session.company_id).eq('role', 'learner')
+      .order('created_at', { ascending: false })
+      .then(function (res) {
+        if (res.error) {
+          statusEl.textContent = '取得に失敗しました：' + res.error.message;
+          return;
+        }
+        var rows = res.data || [];
+        if (!rows.length) {
+          statusEl.textContent = 'まだ受講者アカウントがありません。';
+          table.style.display = 'none';
+          return;
+        }
+        statusEl.textContent = rows.length + '件のアカウントがあります。';
+        table.style.display = 'table';
+        var html = '<tr><th>氏名</th><th>メールアドレス</th><th>状態</th><th>操作</th></tr>';
+        rows.forEach(function (u) {
+          html += '<tr><td>' + u.name + '</td><td>' + u.email + '</td><td>' + (statusBadge[u.status] || u.status) + '</td><td>' + actionButtons(u) + '</td></tr>';
+        });
+        table.innerHTML = html;
 
-function fmtDuration(startIso, endIso) {
-  if (!endIso) return '-';
-  var sec = Math.round((new Date(endIso) - new Date(startIso)) / 1000);
-  var m = Math.floor(sec / 60);
-  var s = sec % 60;
-  return (m > 0 ? m + '分' : '') + s + '秒';
-}
+        table.querySelectorAll('[data-approve]').forEach(function (b) {
+          b.addEventListener('click', function () { updateStatus(b.getAttribute('data-approve'), 'active'); });
+        });
+        table.querySelectorAll('[data-reject]').forEach(function (b) {
+          b.addEventListener('click', function () { updateStatus(b.getAttribute('data-reject'), 'rejected'); });
+        });
+        table.querySelectorAll('[data-suspend]').forEach(function (b) {
+          b.addEventListener('click', function () { updateStatus(b.getAttribute('data-suspend'), 'suspended'); });
+        });
+        table.querySelectorAll('[data-resume]').forEach(function (b) {
+          b.addEventListener('click', function () { updateStatus(b.getAttribute('data-resume'), 'active'); });
+        });
+      });
+  }
 
-function loadLogs() {
-  var status = document.getElementById('logStatus');
-  status.textContent = '取得中...';
-  sb.from('session_logs').select('*').order('started_at', { ascending: false }).limit(200).then(function(res){
-    if (res.error) {
-      status.textContent = '取得に失敗しました: ' + res.error.message;
+  function actionButtons(u) {
+    if (u.status === 'pending') {
+      return '<button class="btn btn-primary" data-approve="' + u.id + '">承認する</button> ' +
+             '<button class="btn btn-danger" data-reject="' + u.id + '">却下する</button>';
+    }
+    if (u.status === 'active') {
+      return '<button class="btn btn-danger" data-suspend="' + u.id + '">停止する</button>';
+    }
+    if (u.status === 'suspended') {
+      return '<button class="btn" data-resume="' + u.id + '">再開する</button>';
+    }
+    return '-';
+  }
+
+  function updateStatus(id, newStatus) {
+    sb.from('app_users').update({ status: newStatus }).eq('id', id).then(function (res) {
+      if (res.error) {
+        alert('更新に失敗しました：' + res.error.message);
+        return;
+      }
+      loadLearners();
+    });
+  }
+
+  loadLearners();
+
+  // ---- レポート出力（既存機能） ----
+  var currentRows = [];
+
+  function fmtDate(iso) {
+    var d = new Date(iso);
+    return d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+  }
+
+  function fmtDuration(startIso, endIso) {
+    if (!endIso) return '-';
+    var sec = Math.round((new Date(endIso) - new Date(startIso)) / 1000);
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return (m > 0 ? m + '分' : '') + s + '秒';
+  }
+
+  function loadLogs() {
+    var status = document.getElementById('logStatus');
+    status.textContent = '取得中...';
+    sb.from('session_logs').select('*').eq('company_name', session.company_name).order('started_at', { ascending: false }).limit(200).then(function (res) {
+      if (res.error) {
+        status.textContent = '取得に失敗しました: ' + res.error.message;
+        return;
+      }
+      currentRows = res.data;
+      var table = document.getElementById('logTable');
+      table.style.display = currentRows.length ? 'table' : 'none';
+      status.textContent = currentRows.length ? (currentRows.length + '件のログを取得しました。') : 'ログがまだありません。受講画面を開くと記録されます。';
+      var rows = '<tr><th>受講者名</th><th>会社名</th><th>受講コース</th><th>コンテンツ名</th><th>学習開始時間</th><th>学習終了時間</th><th>所要時間</th></tr>';
+      currentRows.forEach(function (r) {
+        var end = r.ended_at ? fmtDate(r.ended_at) : '<span class="badge progress">受講中</span>';
+        var dur = fmtDuration(r.started_at, r.ended_at);
+        rows += '<tr><td>' + r.learner_name + '</td><td>' + r.company_name + '</td><td>' + r.course_title + '</td><td>' + r.content_name + '</td><td>' + fmtDate(r.started_at) + '</td><td>' + end + '</td><td>' + dur + '</td></tr>';
+      });
+      table.innerHTML = rows;
+    });
+  }
+
+  document.getElementById('refreshLogsBtn').addEventListener('click', loadLogs);
+
+  document.getElementById('csvBtn').addEventListener('click', function () {
+    if (!currentRows.length) {
+      alert('先に「最新のログを取得」を押してください。');
       return;
     }
-    currentRows = res.data;
-    var table = document.getElementById('logTable');
-    table.style.display = currentRows.length ? 'table' : 'none';
-    status.textContent = currentRows.length ? (currentRows.length + '件のログを取得しました。') : 'ログがまだありません。受講画面を開くと記録されます。';
-    var rows = '<tr><th>受講者名</th><th>会社名</th><th>受講コース</th><th>コンテンツ名</th><th>学習開始時間</th><th>学習終了時間</th><th>所要時間</th></tr>';
-    currentRows.forEach(function(r){
-      var end = r.ended_at ? fmtDate(r.ended_at) : '<span class="badge progress">受講中</span>';
-      var dur = fmtDuration(r.started_at, r.ended_at);
-      rows += '<tr><td>' + r.learner_name + '</td><td>' + r.company_name + '</td><td>' + r.course_title + '</td><td>' + r.content_name + '</td><td>' + fmtDate(r.started_at) + '</td><td>' + end + '</td><td>' + dur + '</td></tr>';
+    var header = ['受講者名', '会社名', '受講コース', 'コンテンツ名', '学習開始時間', '学習終了時間', '所要時間'];
+    var lines = [header.join(',')];
+    currentRows.forEach(function (r) {
+      lines.push([r.learner_name, r.company_name, r.course_title, r.content_name, fmtDate(r.started_at), r.ended_at ? fmtDate(r.ended_at) : '受講中', fmtDuration(r.started_at, r.ended_at)].join(','));
     });
-    table.innerHTML = rows;
+    var csv = '﻿' + lines.join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '受講ログ_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   });
+
+  loadLogs();
 }
-
-document.getElementById('refreshLogsBtn').addEventListener('click', loadLogs);
-
-document.getElementById('csvBtn').addEventListener('click', function(){
-  if (!currentRows.length) {
-    alert('先に「最新のログを取得」を押してください。');
-    return;
-  }
-  var header = ['受講者名','会社名','受講コース','コンテンツ名','学習開始時間','学習終了時間','所要時間'];
-  var lines = [header.join(',')];
-  currentRows.forEach(function(r){
-    lines.push([r.learner_name, r.company_name, r.course_title, r.content_name, fmtDate(r.started_at), r.ended_at ? fmtDate(r.ended_at) : '受講中', fmtDuration(r.started_at, r.ended_at)].join(','));
-  });
-  var csv = '﻿' + lines.join('\r\n');
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = '受講ログ_' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-});
-
-loadLogs();
 </script>
 
 </body>

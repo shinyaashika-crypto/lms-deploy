@@ -54,12 +54,14 @@ body {
   cursor: pointer;
 }
 .btn-primary:hover { background: #16294d; }
+.btn-primary:disabled { background: #b9c1d1; cursor: not-allowed; }
 .divider { display: flex; align-items: center; gap: 10px; margin: 22px 0; color: #b3b6bd; font-size: 11px; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e6e8ec; }
-.invite-note {
-  background: #f4f6fb; border: 1px solid #e2e6ee; border-radius: 8px;
-  padding: 12px 14px; font-size: 12px; color: #5c626e; text-align: center;
+.switch-link {
+  text-align: center; font-size: 13px; color: #1F3864; cursor: pointer; font-weight: 700;
+  background: #f4f6fb; border: 1px solid #e2e6ee; border-radius: 8px; padding: 12px 14px;
 }
+.switch-link:hover { background: #eef1fa; }
 .footer-links { text-align: center; margin-top: 22px; font-size: 12px; color: #9296a0; }
 .footer-links a { color: #767b85; text-decoration: none; margin: 0 6px; }
 .err {
@@ -67,61 +69,251 @@ body {
   background: #fdeceb; border: 1px solid #f3c6c2; color: #a13d34;
   font-size: 12.5px; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px;
 }
+.ok {
+  display: none;
+  background: #eaf6ee; border: 1px solid #bfe3cb; color: #1e7a4c;
+  font-size: 12.5px; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px;
+}
 .demo-note {
   text-align: center; font-size: 11.5px; color: #9296a0; margin-top: 16px;
 }
+#signupView { display: none; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
 
 <div class="card">
   <div class="brand">
     <div class="mark">LMS</div>
-    <h1>助成金対応LMSにログイン</h1>
+    <h1 id="titleText">助成金対応LMSにログイン</h1>
     <p>人材開発支援助成金 リスキリング支援コース対応</p>
   </div>
 
-  <div class="err" id="err">メールアドレスとパスワードを入力してください。</div>
+  <!-- ログイン -->
+  <div id="loginView">
+    <div class="err" id="loginErr"></div>
+    <div class="ok" id="loginOk"></div>
 
-  <form id="loginForm">
-    <div class="field">
-      <label for="email">メールアドレス</label>
-      <input id="email" type="email" placeholder="name@company.jp" autocomplete="email" value="tanaka@sample.co.jp" />
-    </div>
-    <div class="field">
-      <label for="password">パスワード</label>
-      <input id="password" type="password" placeholder="パスワードを入力" autocomplete="current-password" value="demo1234" />
-    </div>
-    <div class="row">
-      <label class="remember"><input type="checkbox" checked style="width:14px;height:14px;margin:0" /> ログイン状態を保持する</label>
-      <a class="forgot" href="#">パスワードをお忘れですか</a>
-    </div>
-    <button type="submit" class="btn-primary">ログイン</button>
-  </form>
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">メールアドレス</label>
+        <input id="email" type="email" placeholder="name@company.jp" autocomplete="email" value="tanaka@sample.co.jp" />
+      </div>
+      <div class="field">
+        <label for="password">パスワード</label>
+        <input id="password" type="password" placeholder="パスワードを入力" autocomplete="current-password" value="demo1234" />
+      </div>
+      <div class="row">
+        <label class="remember"><input type="checkbox" checked style="width:14px;height:14px;margin:0" /> ログイン状態を保持する</label>
+        <a class="forgot" href="#">パスワードをお忘れですか</a>
+      </div>
+      <button type="submit" class="btn-primary" id="loginBtn">ログイン</button>
+    </form>
 
-  <div class="divider">または</div>
-  <div class="invite-note">
-    企業から届いた招待メールをお持ちの方は、メール内のリンクからアカウントを設定してください。
+    <div class="divider">または</div>
+    <div class="switch-link" id="showSignup">初めての方はこちら（新規アカウント登録）</div>
+
+    <div class="demo-note">※ デモ用アカウント：受講者 tanaka@sample.co.jp / demo1234　・　企業管理者 admin@sample.co.jp / admin1234　・　自社運用者 operator@sample.co.jp / operator1234</div>
+  </div>
+
+  <!-- 新規登録 -->
+  <div id="signupView">
+    <div class="err" id="signupErr"></div>
+
+    <form id="signupForm">
+      <div class="field">
+        <label for="suName">氏名</label>
+        <input id="suName" type="text" placeholder="山田 太郎" />
+      </div>
+      <div class="field">
+        <label for="suCompany">会社名</label>
+        <input id="suCompany" type="text" placeholder="株式会社サンプル" value="株式会社サンプル" />
+      </div>
+      <div class="field">
+        <label for="suEmail">メールアドレス</label>
+        <input id="suEmail" type="email" placeholder="name@company.jp" />
+      </div>
+      <div class="field">
+        <label for="suPassword">パスワード（8文字以上）</label>
+        <input id="suPassword" type="password" placeholder="パスワードを入力" />
+      </div>
+      <div class="field">
+        <label for="suPassword2">パスワード（確認）</label>
+        <input id="suPassword2" type="password" placeholder="もう一度入力" />
+      </div>
+      <button type="submit" class="btn-primary" id="signupBtn">登録を申請する</button>
+    </form>
+
+    <div class="divider">または</div>
+    <div class="switch-link" id="showLogin">ログイン画面に戻る</div>
+
+    <div class="demo-note">※ 登録後、所属企業の企業管理者が承認するとログインできるようになります。</div>
   </div>
 
   <div class="footer-links">
     <a href="#">利用規約</a>・<a href="#">プライバシーポリシー</a>・<a href="#">お問い合わせ</a>
   </div>
-  <div class="demo-note">※ デザイン確認用デモです。上記のメール/パスワードは入力済みなのでそのままログインできます。</div>
 </div>
 
 <script>
-document.getElementById('loginForm').addEventListener('submit', function(e){
+var loginView = document.getElementById('loginView');
+var signupView = document.getElementById('signupView');
+var titleText = document.getElementById('titleText');
+
+document.getElementById('showSignup').addEventListener('click', function () {
+  loginView.style.display = 'none';
+  signupView.style.display = 'block';
+  titleText.textContent = '新規アカウント登録';
+});
+document.getElementById('showLogin').addEventListener('click', function () {
+  signupView.style.display = 'none';
+  loginView.style.display = 'block';
+  titleText.textContent = '助成金対応LMSにログイン';
+});
+
+// ---- ログイン処理 ----
+document.getElementById('loginForm').addEventListener('submit', function (e) {
   e.preventDefault();
-  var email = document.getElementById('email').value;
+  var email = document.getElementById('email').value.trim();
   var pw = document.getElementById('password').value;
-  var err = document.getElementById('err');
+  var errBox = document.getElementById('loginErr');
+  var okBox = document.getElementById('loginOk');
+  errBox.style.display = 'none';
+  okBox.style.display = 'none';
+
   if (!email || !pw) {
-    err.style.display = 'block';
+    errBox.textContent = 'メールアドレスとパスワードを入力してください。';
+    errBox.style.display = 'block';
     return;
   }
-  err.style.display = 'none';
-  window.location.href = 'mypage.html';
+
+  var btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'ログイン中...';
+
+  sha256Hex(pw).then(function (hash) {
+    return sb.from('app_users').select('*, companies(name)').eq('email', email).maybeSingle().then(function (res) {
+      btn.disabled = false;
+      btn.textContent = 'ログイン';
+
+      if (res.error || !res.data) {
+        errBox.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+        errBox.style.display = 'block';
+        return;
+      }
+      var u = res.data;
+      if (u.password_hash !== hash) {
+        errBox.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.status === 'pending') {
+        errBox.textContent = 'このアカウントはまだ企業管理者の承認待ちです。承認後にログインできます。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.status === 'suspended') {
+        errBox.textContent = 'このアカウントは停止されています。管理者にお問い合わせください。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (u.status === 'rejected') {
+        errBox.textContent = '登録は承認されませんでした。管理者にお問い合わせください。';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      saveSession({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        company_id: u.company_id,
+        company_name: u.companies ? u.companies.name : null
+      });
+      window.location.href = roleHomePage(u.role);
+    });
+  });
+});
+
+// ---- 新規登録処理 ----
+document.getElementById('signupForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var name = document.getElementById('suName').value.trim();
+  var companyName = document.getElementById('suCompany').value.trim();
+  var email = document.getElementById('suEmail').value.trim();
+  var pw = document.getElementById('suPassword').value;
+  var pw2 = document.getElementById('suPassword2').value;
+  var errBox = document.getElementById('signupErr');
+  errBox.style.display = 'none';
+
+  if (!name || !companyName || !email || !pw || !pw2) {
+    errBox.textContent = 'すべての項目を入力してください。';
+    errBox.style.display = 'block';
+    return;
+  }
+  if (pw.length < 8) {
+    errBox.textContent = 'パスワードは8文字以上で設定してください。';
+    errBox.style.display = 'block';
+    return;
+  }
+  if (pw !== pw2) {
+    errBox.textContent = 'パスワードが一致しません。';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  var btn = document.getElementById('signupBtn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  sb.from('app_users').select('id').eq('email', email).maybeSingle().then(function (existing) {
+    if (existing.data) {
+      btn.disabled = false;
+      btn.textContent = '登録を申請する';
+      errBox.textContent = 'このメールアドレスは既に登録されています。';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    sb.from('companies').select('id').eq('name', companyName).maybeSingle().then(function (companyRes) {
+      var ensureCompany = companyRes.data
+        ? Promise.resolve(companyRes.data.id)
+        : sb.from('companies').insert({ name: companyName }).select().then(function (r) {
+            return r.data[0].id;
+          });
+
+      ensureCompany.then(function (companyId) {
+        sha256Hex(pw).then(function (hash) {
+          sb.from('app_users').insert({
+            email: email,
+            password_hash: hash,
+            name: name,
+            company_id: companyId,
+            role: 'learner',
+            status: 'pending'
+          }).then(function (res) {
+            btn.disabled = false;
+            btn.textContent = '登録を申請する';
+            if (res.error) {
+              errBox.textContent = '登録に失敗しました：' + res.error.message;
+              errBox.style.display = 'block';
+              return;
+            }
+            document.getElementById('signupForm').reset();
+            signupView.style.display = 'none';
+            loginView.style.display = 'block';
+            titleText.textContent = '助成金対応LMSにログイン';
+            var okBox = document.getElementById('loginOk');
+            okBox.textContent = '登録申請を受け付けました。企業管理者の承認後にログインできます。';
+            okBox.style.display = 'block';
+          });
+        });
+      });
+    });
+  });
 });
 </script>
 
