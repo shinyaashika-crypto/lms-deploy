@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>自社運用者画面 | 助成金対応LMS</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Yu Gothic", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: #eef1f6;
+  color: #22252b;
+  margin: 0;
+}
+header {
+  background: #fff;
+  border-bottom: 1px solid #e2e5ea;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header .brand { display: flex; align-items: center; gap: 10px; }
+header .mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #1F3864; color: #fff; font-weight: 700; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+header .name { font-weight: 700; font-size: 15px; color: #1F3864; }
+header .role { font-size: 11.5px; background: #DCE6F1; color: #1F3864; padding: 3px 10px; border-radius: 6px; margin-left: 6px; }
+header a.back { font-size: 12.5px; color: #767b85; text-decoration: none; }
+header a.back:hover { text-decoration: underline; }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 61px); }
+nav.side { background: #fff; border-right: 1px solid #e2e5ea; padding: 20px 12px; }
+nav.side button {
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  padding: 10px 12px; border-radius: 8px; font-size: 13.5px; color: #444; cursor: pointer; margin-bottom: 2px;
+}
+nav.side button:hover { background: #f4f6fb; }
+nav.side button.active { background: #1F3864; color: #fff; font-weight: 700; }
+main { padding: 28px 32px; }
+.panel { display: none; }
+.panel.active { display: block; }
+h1 { font-size: 18px; margin: 0 0 18px; }
+.card { background: #fff; border: 1px solid #e2e5ea; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 18px; }
+.stat { background: #fff; border: 1px solid #e2e5ea; border-radius: 10px; padding: 14px; }
+.stat .label { font-size: 12px; color: #767b85; margin-bottom: 4px; }
+.stat .value { font-size: 20px; font-weight: 700; color: #1F3864; }
+.alert { display: flex; align-items: center; gap: 10px; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 8px; }
+.alert.warn { background: #fdf2df; border: 1px solid #f0dba8; color: #8a6416; }
+.alert.info { background: #f4f6fb; border: 1px solid #e2e6ee; color: #444; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: #767b85; font-weight: 500; padding: 8px 10px; border-bottom: 1px solid #e2e5ea; }
+td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
+.badge { font-size: 11.5px; padding: 3px 10px; border-radius: 6px; white-space: nowrap; }
+.badge.generic { background: #DCE6F1; color: #1F3864; }
+.badge.custom { background: #f0f1f4; color: #555; }
+.badge.published { background: #e3f5e9; color: #1e7a4c; }
+.badge.draft { background: #f0f1f4; color: #767b85; }
+.badge.warn { background: #fdf2df; color: #8a6416; }
+.toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.btn { height: 34px; padding: 0 14px; font-size: 12.5px; border-radius: 8px; border: 1px solid #d8dbe2; background: #fff; color: #22252b; cursor: pointer; }
+.btn:hover { background: #f4f6fb; }
+.btn-primary { border: none; background: #1F3864; color: #fff; font-weight: 700; }
+.btn-primary:hover { background: #16294d; }
+.note { font-size: 11.5px; color: #9296a0; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">LMS</div>
+    <div class="name">助成金対応LMS</div>
+    <span class="role">自社運用者</span>
+  </div>
+  <a class="back" href="mypage.html">受講者画面へ</a>
+</header>
+
+<div class="layout">
+  <nav class="side">
+    <button class="nav-btn active" data-panel="p1">全体ダッシュボード</button>
+    <button class="nav-btn" data-panel="p2">講座管理</button>
+    <button class="nav-btn" data-panel="p3">契約企業管理</button>
+  </nav>
+
+  <main>
+    <div class="panel active" id="p1">
+      <h1>全体ダッシュボード</h1>
+      <div class="stats">
+        <div class="stat"><div class="label">契約企業数</div><div class="value">28</div></div>
+        <div class="stat"><div class="label">公開講座数</div><div class="value">14</div></div>
+        <div class="stat"><div class="label">今月の受講者数</div><div class="value">312</div></div>
+        <div class="stat"><div class="label">今月の修了率</div><div class="value">78%</div></div>
+      </div>
+      <div class="card">
+        <div style="font-size:12px;color:#767b85;margin-bottom:10px">要対応</div>
+        <div class="alert warn">3社で就業時間外のログイン記録を検知しました。確認してください。</div>
+        <div class="alert info">「クラウドセキュリティ入門」の標準学習時間が未設定です。</div>
+      </div>
+    </div>
+
+    <div class="panel" id="p2">
+      <h1>講座管理</h1>
+      <div class="card">
+        <div class="toolbar"><button class="btn-primary btn" onclick="alert('デザイン確認用モックアップです')">新規講座を作成</button></div>
+        <table>
+          <tr><th>講座名</th><th>区分</th><th>標準学習時間</th><th>状態</th></tr>
+          <tr><td>DX推進のためのデータ分析基礎</td><td><span class="badge generic">汎用</span></td><td>12時間</td><td><span class="badge published">公開中</span></td></tr>
+          <tr><td>クラウドセキュリティ入門</td><td><span class="badge generic">汎用</span></td><td><span style="color:#8a6416">未設定</span></td><td><span class="badge draft">下書き</span></td></tr>
+          <tr><td>A社向け 業務システム操作研修</td><td><span class="badge custom">カスタム</span></td><td>8時間</td><td><span class="badge published">公開中</span></td></tr>
+        </table>
+        <div class="note">「カスタム」区分の講座は助成金の支給対象外として自動的にレポートから除外されます。</div>
+      </div>
+    </div>
+
+    <div class="panel" id="p3">
+      <h1>契約企業管理</h1>
+      <div class="card">
+        <div class="toolbar"><button class="btn-primary btn" onclick="alert('デザイン確認用モックアップです')">企業を追加</button></div>
+        <table>
+          <tr><th>企業名</th><th>従業員数</th><th>利用中講座数</th><th>契約状態</th></tr>
+          <tr><td>株式会社サンプル</td><td>45名</td><td>3講座</td><td><span class="badge published">契約中</span></td></tr>
+          <tr><td>株式会社A</td><td>120名</td><td>5講座</td><td><span class="badge published">契約中</span></td></tr>
+          <tr><td>株式会社B</td><td>18名</td><td>1講座</td><td><span class="badge warn">更新待ち</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.querySelectorAll('.nav-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.panel).classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

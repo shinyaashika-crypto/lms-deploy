@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>受講画面 | 助成金対応LMS</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Yu Gothic", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: #eef1f6;
+  color: #22252b;
+  margin: 0;
+}
+header {
+  background: #fff;
+  border-bottom: 1px solid #e2e5ea;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header .brand { display: flex; align-items: center; gap: 10px; }
+header .mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #1F3864; color: #fff; font-weight: 700; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+header .name { font-weight: 700; font-size: 15px; color: #1F3864; }
+header a.back { font-size: 12.5px; color: #767b85; text-decoration: none; }
+header a.back:hover { text-decoration: underline; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 28px 24px 80px; }
+.course-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+}
+.course-head h1 { font-size: 18px; margin: 0 0 4px; }
+.course-head .chapter { font-size: 12.5px; color: #767b85; }
+.timer {
+  font-size: 12px; background: #DCE6F1; color: #1F3864;
+  padding: 5px 12px; border-radius: 8px; white-space: nowrap;
+}
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.player {
+  background: #fff; border: 1px solid #e2e5ea; border-radius: 12px; padding: 16px;
+}
+.screen {
+  background: #1b2436; border-radius: 8px; overflow: hidden;
+}
+.screen video { width: 100%; display: block; border-radius: 8px; }
+.progress-track { margin-top: 10px; height: 6px; background: #eceff3; border-radius: 4px; overflow: hidden; }
+.progress-track div { height: 100%; background: #1F3864; }
+.time-row { display: flex; justify-content: space-between; font-size: 12px; color: #767b85; margin-top: 6px; }
+.chapters { background: #fff; border: 1px solid #e2e5ea; border-radius: 12px; padding: 16px; }
+.chapters .label { font-size: 12px; color: #767b85; margin-bottom: 10px; }
+.chapter-item { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 7px 0; }
+.chapter-item.done { color: #1e7a4c; }
+.chapter-item.active { font-weight: 700; color: #1F3864; }
+.chapter-item.todo { color: #b3b6bd; }
+.dot-icon { font-size: 14px; }
+.actions { margin-top: 18px; display: flex; justify-content: flex-end; }
+.btn-primary {
+  height: 40px; padding: 0 20px; border: none; border-radius: 8px;
+  background: #1F3864; color: #fff; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.btn-primary:hover { background: #16294d; }
+.btn-primary:disabled { background: #b9c1d1; cursor: not-allowed; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">LMS</div>
+    <div class="name">助成金対応LMS</div>
+  </div>
+  <a class="back" href="mypage.html" id="backLink">← マイページに戻る</a>
+</header>
+
+<div class="wrap">
+  <div class="course-head">
+    <div>
+      <h1 id="courseTitle">DX推進のためのデータ分析基礎</h1>
+      <div class="chapter" id="chapterLabel">第3章：可視化ツールの基本操作</div>
+    </div>
+    <div class="timer">受講中 <span id="elapsed">00:24:18</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="player">
+      <div class="screen" id="screen">
+        <video id="videoPlayer" controls preload="metadata">
+          <source src="videos/lesson-video.mp4" type="video/mp4">
+          お使いのブラウザは動画再生に対応していません。
+        </video>
+      </div>
+      <div class="progress-track"><div id="videoProgress" style="width:0%"></div></div>
+      <div class="time-row"><span id="curTime">00:00</span><span id="totalTime">00:00</span></div>
+    </div>
+    <div class="chapters">
+      <div class="label">章の進捗</div>
+      <div id="chapterList"></div>
+      <div class="actions">
+        <button class="btn-primary" id="nextBtn">次の章へ進む</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SUPABASE_URL = 'https://aljqmldikmnnprxucnva.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsanFtbGRpa21ubnByeHVjbnZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjczMjgsImV4cCI6MjEwMDA0MzMyOH0.D5pB45t0QUE3hj0WtO8zxufVqKVVOfJhowHpbAUEJrE';
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var LEARNER_NAME = '田中 一郎';
+var COMPANY_NAME = '株式会社サンプル';
+var currentLogId = null;
+
+// 章（コンテンツ）単位で開始・終了を記録する
+function startContentLog(contentName) {
+  sb.from('session_logs').insert({
+    learner_name: LEARNER_NAME,
+    company_name: COMPANY_NAME,
+    course_key: courseKey,
+    course_title: (courses[courseKey] || courses['data-analysis']).title,
+    content_name: contentName
+  }).select().then(function(res){
+    if (res.error) { console.error('content log start failed', res.error); return; }
+    currentLogId = res.data[0].id;
+  });
+}
+
+function endContentLog(videoTimeSec) {
+  if (!currentLogId) return;
+  var id = currentLogId;
+  currentLogId = null;
+  sb.from('session_logs').update({
+    ended_at: new Date().toISOString(),
+    video_time_sec: videoTimeSec || null
+  }).eq('id', id).then(function(res){
+    if (res.error) { console.error('content log end failed', res.error); }
+  });
+}
+
+var params = new URLSearchParams(window.location.search);
+var courseKey = params.get('course') || 'data-analysis';
+
+var courses = {
+  'data-analysis': {
+    title: 'DX推進のためのデータ分析基礎',
+    chapters: ['第1章：データ分析の基礎知識', '第2章：ツールのセットアップ', '第3章：可視化ツールの基本操作', '第4章：レポート作成の実践']
+  },
+  'cloud-security': {
+    title: 'クラウドセキュリティ入門',
+    chapters: ['第1章：クラウドの基礎', '第2章：アクセス権限管理', '第3章：脅威と対策', '第4章：運用チェックリスト']
+  }
+};
+
+var data = courses[courseKey] || courses['data-analysis'];
+var current = 2;
+
+document.getElementById('courseTitle').textContent = data.title;
+
+function render() {
+  document.getElementById('chapterLabel').textContent = data.chapters[current];
+  var list = document.getElementById('chapterList');
+  list.innerHTML = '';
+  data.chapters.forEach(function(ch, i){
+    var div = document.createElement('div');
+    var cls = i < current ? 'done' : (i === current ? 'active' : 'todo');
+    var icon = i < current ? '✅' : (i === current ? '▶' : '○');
+    div.className = 'chapter-item ' + cls;
+    div.innerHTML = '<span class="dot-icon">' + icon + '</span><span>' + ch + '</span>';
+    list.appendChild(div);
+  });
+  document.getElementById('nextBtn').disabled = current >= data.chapters.length - 1;
+  document.getElementById('nextBtn').textContent = current >= data.chapters.length - 1 ? 'この講座は最終章です' : '次の章へ進む';
+}
+
+function fmt(sec) {
+  sec = Math.floor(sec || 0);
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+var video = document.getElementById('videoPlayer');
+video.addEventListener('loadedmetadata', function(){
+  document.getElementById('totalTime').textContent = fmt(video.duration);
+});
+video.addEventListener('timeupdate', function(){
+  document.getElementById('curTime').textContent = fmt(video.currentTime);
+  var pct = video.duration ? (video.currentTime / video.duration) * 100 : 0;
+  document.getElementById('videoProgress').style.width = pct + '%';
+});
+video.addEventListener('ended', function(){
+  document.getElementById('videoProgress').style.width = '100%';
+});
+
+document.getElementById('nextBtn').addEventListener('click', function(){
+  if (current < data.chapters.length - 1) {
+    endContentLog(video.currentTime);
+    current++;
+    document.getElementById('videoProgress').style.width = '0%';
+    document.getElementById('curTime').textContent = '00:00';
+    render();
+    startContentLog(data.chapters[current]);
+  }
+});
+
+// 受講中の経過時間（ログイン/ログアウトログ相当の実測）
+var startTime = Date.now();
+setInterval(function(){
+  var elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+  var h = Math.floor(elapsedSec / 3600);
+  var m = Math.floor((elapsedSec % 3600) / 60);
+  var s = elapsedSec % 60;
+  var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+  document.getElementById('elapsed').textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+}, 1000);
+
+render();
+
+// 現在の章の学習開始記録
+startContentLog(data.chapters[current]);
+
+// 現在の章の学習終了記録（マイページに戻る／画面を離れる時点、重複記録を防止）
+var loggedOut = false;
+function logoutOnce() {
+  if (loggedOut) return;
+  loggedOut = true;
+  endContentLog(video.currentTime);
+}
+document.getElementById('backLink').addEventListener('click', function(e){
+  e.preventDefault();
+  logoutOnce();
+  setTimeout(function(){ window.location.href = 'mypage.html'; }, 300);
+});
+window.addEventListener('pagehide', logoutOnce);
+</script>
+
+</body>
+</html>
