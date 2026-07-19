@@ -72,24 +72,6 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
 .tabs div { font-size: 13px; padding-bottom: 8px; cursor: pointer; color: #767b85; }
 .tabs div.active { color: #1F3864; font-weight: 700; border-bottom: 2px solid #1F3864; }
 .empty { color: #9296a0; font-size: 13px; padding: 20px 0; text-align: center; }
-.badge.published { background: #e3f5e9; color: #1e7a4c; }
-.badge.draft { background: #f0f1f4; color: #767b85; }
-.badge.on { background: #e3f5e9; color: #1e7a4c; }
-.btn-sm { height: 28px; padding: 0 10px; font-size: 11.5px; }
-.course-card { border: 1px solid #e2e5ea; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
-.course-card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.course-card-head input[type=text] {
-  font-size: 14px; font-weight: 700; border: 1px solid #d8dbe2; border-radius: 6px; padding: 6px 8px; flex: 1; min-width: 180px;
-}
-.chapter-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid #f0f1f4; flex-wrap: wrap; }
-.chapter-row input[type=text] {
-  font-size: 12.5px; border: 1px solid #d8dbe2; border-radius: 6px; padding: 5px 8px; flex: 1; min-width: 160px;
-}
-.chapter-row .video-status { font-size: 11.5px; color: #767b85; min-width: 110px; }
-.new-course-form { display: flex; gap: 8px; margin-bottom: 14px; }
-.new-course-form input { flex: 1; height: 34px; border: 1px solid #d8dbe2; border-radius: 8px; padding: 0 10px; font-size: 13px; }
-.badge { cursor: default; border: none; }
-button.badge { cursor: pointer; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js"></script>
@@ -114,7 +96,6 @@ button.badge { cursor: pointer; }
     <button class="nav-btn active" data-panel="p1">受講者管理一覧</button>
     <button class="nav-btn" data-panel="p2">レポート出力</button>
     <button class="nav-btn" data-panel="p3">受講者の招待</button>
-    <button class="nav-btn" data-panel="p4">動画コンテンツ管理</button>
   </nav>
 
   <main>
@@ -146,23 +127,12 @@ button.badge { cursor: pointer; }
       <h1>受講者の招待・一括登録</h1>
       <div class="card">
         <div class="preview" style="margin-bottom:0">
-          受講者はログイン画面の「新規アカウント登録」から自分でアカウントを申請できるようになりました。申請されたアカウントは「受講者管理一覧」タブから承認してください。
+          受講者はログイン画面の「新規アカウント登録」から自分でアカウントを申請できるようになりました。申請されたアカウントは「受講者管理一覧」タブから承認してください。<br>
+          ※ 研修コンテンツ（動画）の追加・編集・削除は、Gravata運用者が一括で行っています。コンテンツに関するご要望は運用者までお問い合わせください。
         </div>
       </div>
     </div>
 
-    <div class="panel" id="p4">
-      <h1>動画コンテンツ管理</h1>
-      <div class="card">
-        <div class="new-course-form">
-          <input type="text" id="newCourseTitle" placeholder="新しい大項目（講座）名（例：ハラスメント防止研修）" />
-          <button class="btn-primary btn" id="createCourseBtn">大項目を作成</button>
-        </div>
-        <div id="courseListStatus" style="font-size:12.5px;color:#767b85;margin-bottom:10px">読み込み中...</div>
-        <div id="courseList"></div>
-        <div class="note">「大項目」は受講者画面に表示される講座、「中身」はその中の章（動画）です。「状態」を下書きにすると、その大項目は受講者のマイページに表示されなくなります。「倍速視聴」を禁止にすると、その大項目は等倍速でのみ再生できます。</div>
-      </div>
-    </div>
   </main>
 </div>
 
@@ -321,245 +291,6 @@ if (session) {
   });
 
   loadLogs();
-
-  // ---- 動画コンテンツ管理（大項目＝講座／中身＝章） ----
-  var STORAGE_PUBLIC_PREFIX = SUPABASE_URL + '/storage/v1/object/public/course-videos/';
-
-  function slugify(text) {
-    return 'course-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-  }
-
-  function loadCourses() {
-    var statusEl = document.getElementById('courseListStatus');
-    var listEl = document.getElementById('courseList');
-    statusEl.textContent = '読み込み中...';
-
-    sb.from('courses').select('*').order('created_at', { ascending: true }).then(function (courseRes) {
-      if (courseRes.error) {
-        statusEl.textContent = '取得に失敗しました：' + courseRes.error.message;
-        return;
-      }
-      var courseRows = courseRes.data || [];
-
-      if (!courseRows.length) {
-        statusEl.textContent = '大項目（講座）がまだありません。上のフォームから作成してください。';
-        listEl.innerHTML = '';
-        return;
-      }
-
-      sb.from('course_chapters').select('*').order('order_index', { ascending: true }).then(function (chRes) {
-        if (chRes.error) {
-          statusEl.textContent = '中身（章）の取得に失敗しました：' + chRes.error.message;
-          return;
-        }
-        statusEl.textContent = courseRows.length + '件の大項目があります。';
-        listEl.innerHTML = '';
-        courseRows.forEach(function (course) {
-          var chapters = (chRes.data || []).filter(function (c) { return c.course_id === course.id; });
-          listEl.appendChild(renderCourseCard(course, chapters));
-        });
-      });
-    });
-  }
-
-  function renderCourseCard(course, chapters) {
-    var card = document.createElement('div');
-    card.className = 'course-card';
-
-    var head = document.createElement('div');
-    head.className = 'course-card-head';
-
-    var titleInput = document.createElement('input');
-    titleInput.type = 'text';
-    titleInput.value = course.title;
-
-    var saveTitleBtn = document.createElement('button');
-    saveTitleBtn.className = 'btn btn-sm';
-    saveTitleBtn.textContent = '名称を保存';
-    saveTitleBtn.addEventListener('click', function () {
-      sb.from('courses').update({ title: titleInput.value }).eq('id', course.id).then(function (res) {
-        if (res.error) { alert('保存に失敗しました：' + res.error.message); return; }
-        loadCourses();
-      });
-    });
-
-    var activeBadge = document.createElement('button');
-    activeBadge.className = 'badge ' + (course.is_active ? 'published' : 'draft');
-    activeBadge.textContent = course.is_active ? '公開中（クリックで下書きに）' : '下書き（クリックで公開）';
-    activeBadge.addEventListener('click', function () {
-      sb.from('courses').update({ is_active: !course.is_active }).eq('id', course.id).then(function (res) {
-        if (res.error) { alert('更新に失敗しました：' + res.error.message); return; }
-        loadCourses();
-      });
-    });
-
-    var speedBadge = document.createElement('button');
-    speedBadge.className = 'badge ' + (course.allow_speed_control ? 'on' : 'off');
-    speedBadge.textContent = course.allow_speed_control ? '倍速視聴：許可（クリックで禁止）' : '倍速視聴：禁止（クリックで許可）';
-    speedBadge.addEventListener('click', function () {
-      sb.from('courses').update({ allow_speed_control: !course.allow_speed_control }).eq('id', course.id).then(function (res) {
-        if (res.error) { alert('更新に失敗しました：' + res.error.message); return; }
-        loadCourses();
-      });
-    });
-
-    var deleteCourseBtn = document.createElement('button');
-    deleteCourseBtn.className = 'btn btn-sm btn-danger';
-    deleteCourseBtn.textContent = '大項目を削除';
-    deleteCourseBtn.addEventListener('click', function () {
-      if (!confirm('「' + course.title + '」を削除します。よろしいですか？（中身の章・動画もすべて削除されます）')) return;
-      sb.from('courses').delete().eq('id', course.id).then(function (res) {
-        if (res.error) { alert('削除に失敗しました：' + res.error.message); return; }
-        loadCourses();
-      });
-    });
-
-    head.appendChild(titleInput);
-    head.appendChild(saveTitleBtn);
-    head.appendChild(activeBadge);
-    head.appendChild(speedBadge);
-    head.appendChild(deleteCourseBtn);
-    card.appendChild(head);
-
-    var chapterWrap = document.createElement('div');
-    chapters.forEach(function (ch) {
-      chapterWrap.appendChild(renderChapterRow(course, ch));
-    });
-    card.appendChild(chapterWrap);
-
-    var addChapterBtn = document.createElement('button');
-    addChapterBtn.className = 'btn btn-sm';
-    addChapterBtn.style.marginTop = '10px';
-    addChapterBtn.textContent = '+ 中身（章）を追加';
-    addChapterBtn.addEventListener('click', function () {
-      var title = prompt('新しい章のタイトルを入力してください', '第' + (chapters.length + 1) + '章：');
-      if (!title) return;
-      sb.from('course_chapters').insert({
-        course_id: course.id,
-        order_index: chapters.length,
-        title: title,
-        video_url: null
-      }).then(function (res) {
-        if (res.error) { alert('追加に失敗しました：' + res.error.message); return; }
-        loadCourses();
-      });
-    });
-    card.appendChild(addChapterBtn);
-
-    return card;
-  }
-
-  function renderChapterRow(course, chapter) {
-    var row = document.createElement('div');
-    row.className = 'chapter-row';
-
-    var titleInput = document.createElement('input');
-    titleInput.type = 'text';
-    titleInput.value = chapter.title;
-
-    var saveBtn = document.createElement('button');
-    saveBtn.className = 'btn btn-sm';
-    saveBtn.textContent = '保存';
-    saveBtn.addEventListener('click', function () {
-      sb.from('course_chapters').update({ title: titleInput.value }).eq('id', chapter.id).then(function (res) {
-        if (res.error) { alert('保存に失敗しました：' + res.error.message); return; }
-        loadCourses();
-      });
-    });
-
-    var videoStatus = document.createElement('span');
-    videoStatus.className = 'video-status';
-    videoStatus.textContent = chapter.video_url ? '動画：登録済み' : '動画：未登録';
-
-    var fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'video/*';
-    fileInput.style.fontSize = '11.5px';
-    fileInput.style.maxWidth = '160px';
-    fileInput.addEventListener('change', function () {
-      if (!fileInput.files || !fileInput.files[0]) return;
-      var file = fileInput.files[0];
-      var path = course.id + '/' + chapter.id + '-' + Date.now() + '-' + file.name;
-      videoStatus.textContent = 'アップロード中...';
-      sb.storage.from('course-videos').upload(path, file, { upsert: true }).then(function (uploadRes) {
-        if (uploadRes.error) {
-          alert('アップロードに失敗しました：' + uploadRes.error.message);
-          videoStatus.textContent = chapter.video_url ? '動画：登録済み' : '動画：未登録';
-          return;
-        }
-        var publicUrl = sb.storage.from('course-videos').getPublicUrl(path).data.publicUrl;
-        sb.from('course_chapters').update({ video_url: publicUrl }).eq('id', chapter.id).then(function (res) {
-          if (res.error) { alert('保存に失敗しました：' + res.error.message); return; }
-          loadCourses();
-        });
-      });
-    });
-
-    var deleteVideoBtn = document.createElement('button');
-    deleteVideoBtn.className = 'btn btn-sm btn-danger';
-    deleteVideoBtn.textContent = '動画を削除';
-    deleteVideoBtn.style.display = chapter.video_url ? 'inline-block' : 'none';
-    deleteVideoBtn.addEventListener('click', function () {
-      if (!confirm('この章の動画を削除します。よろしいですか？')) return;
-      var afterClear = function () {
-        sb.from('course_chapters').update({ video_url: null }).eq('id', chapter.id).then(function (res) {
-          if (res.error) { alert('削除に失敗しました：' + res.error.message); return; }
-          loadCourses();
-        });
-      };
-      if (chapter.video_url && chapter.video_url.indexOf(STORAGE_PUBLIC_PREFIX) === 0) {
-        var objPath = chapter.video_url.slice(STORAGE_PUBLIC_PREFIX.length);
-        sb.storage.from('course-videos').remove([objPath]).then(afterClear).catch(afterClear);
-      } else {
-        afterClear();
-      }
-    });
-
-    var deleteChapterBtn = document.createElement('button');
-    deleteChapterBtn.className = 'btn btn-sm btn-danger';
-    deleteChapterBtn.textContent = '中身を削除';
-    deleteChapterBtn.addEventListener('click', function () {
-      if (!confirm('「' + chapter.title + '」を削除します。よろしいですか？')) return;
-      sb.from('course_chapters').delete().eq('id', chapter.id).then(function (res) {
-        if (res.error) { alert('削除に失敗しました：' + res.error.message); return; }
-        loadCourses();
-      });
-    });
-
-    row.appendChild(titleInput);
-    row.appendChild(saveBtn);
-    row.appendChild(videoStatus);
-    row.appendChild(fileInput);
-    row.appendChild(deleteVideoBtn);
-    row.appendChild(deleteChapterBtn);
-    return row;
-  }
-
-  document.getElementById('createCourseBtn').addEventListener('click', function () {
-    var input = document.getElementById('newCourseTitle');
-    var title = input.value.trim();
-    if (!title) { alert('大項目名を入力してください。'); return; }
-    sb.from('courses').insert({
-      course_key: slugify(title),
-      title: title,
-      is_active: true,
-      allow_speed_control: true
-    }).select().then(function (res) {
-      if (res.error) { alert('作成に失敗しました：' + res.error.message); return; }
-      var newCourse = res.data[0];
-      sb.from('course_chapters').insert({
-        course_id: newCourse.id,
-        order_index: 0,
-        title: '第1章：導入',
-        video_url: null
-      }).then(function () {
-        input.value = '';
-        loadCourses();
-      });
-    });
-  });
-
-  loadCourses();
 }
 </script>
 
