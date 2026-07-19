@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>助成金対応LMS ログイン</title>
+<title>Gravata_LMS ログイン</title>
 <style>
 :root { color-scheme: light; }
 * { box-sizing: border-box; }
@@ -87,7 +87,7 @@ body {
 <div class="card">
   <div class="brand">
     <div class="mark">LMS</div>
-    <h1 id="titleText">助成金対応LMSにログイン</h1>
+    <h1 id="titleText">Gravata_LMSにログイン</h1>
     <p>人材開発支援助成金 リスキリング支援コース対応</p>
   </div>
 
@@ -171,7 +171,7 @@ document.getElementById('showSignup').addEventListener('click', function () {
 document.getElementById('showLogin').addEventListener('click', function () {
   signupView.style.display = 'none';
   loginView.style.display = 'block';
-  titleText.textContent = '助成金対応LMSにログイン';
+  titleText.textContent = 'Gravata_LMSにログイン';
 });
 
 // ---- ログイン処理 ----
@@ -311,7 +311,7 @@ document.getElementById('signupForm').addEventListener('submit', function (e) {
             document.getElementById('signupForm').reset();
             signupView.style.display = 'none';
             loginView.style.display = 'block';
-            titleText.textContent = '助成金対応LMSにログイン';
+            titleText.textContent = 'Gravata_LMSにログイン';
             var okBox = document.getElementById('loginOk');
             okBox.textContent = '登録申請を受け付けました。企業管理者の承認後にログインできます。';
             okBox.style.display = 'block';
