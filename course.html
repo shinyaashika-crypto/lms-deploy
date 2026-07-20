@@ -91,6 +91,10 @@ header a.back:hover { text-decoration: underline; }
   <div class="loading">読み込み中...</div>
 </div>
 
+<div class="wrap" id="restrictedWrap" style="display:none">
+  <div class="loading" id="restrictedMsg">現在は受講可能時間外です。</div>
+</div>
+
 <div class="wrap" id="mainWrap" style="display:none">
   <div class="course-head">
     <div>
@@ -160,6 +164,25 @@ if (session) {
     }).eq('id', id).then(function (res) {
       if (res.error) { console.error('content log end failed', res.error); }
     });
+  }
+
+  function isWithinAllowedHours(company) {
+    if (!company || !company.restrict_hours) return true;
+    var now = new Date();
+    var day = now.getDay();
+    if (company.weekdays_only !== false && (day === 0 || day === 6)) return false;
+    var pad2 = function (n) { return (n < 10 ? '0' : '') + n; };
+    var cur = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+    var start = (company.work_start_time || '09:00:00').slice(0, 5);
+    var end = (company.work_end_time || '18:00:00').slice(0, 5);
+    return cur >= start && cur <= end;
+  }
+
+  function hoursRestrictionMessage(company) {
+    var start = (company.work_start_time || '09:00:00').slice(0, 5);
+    var end = (company.work_end_time || '18:00:00').slice(0, 5);
+    var dayPart = company.weekdays_only !== false ? '平日' : '毎日';
+    return '現在は受講可能時間外のため、この講座は視聴できません。' + dayPart + ' ' + start + '〜' + end + ' の間にご利用ください。';
   }
 
   function fmt(sec) {
@@ -301,15 +324,34 @@ if (session) {
       var saved = parseInt(localStorage.getItem(progressKey), 10);
       current = (!isNaN(saved) && saved >= 0 && saved < chapters.length) ? saved : 0;
 
-      document.getElementById('courseTitle').textContent = course.title;
-      document.getElementById('loadingWrap').style.display = 'none';
-      document.getElementById('mainWrap').style.display = 'block';
+      function proceedToPlayer() {
+        document.getElementById('courseTitle').textContent = course.title;
+        document.getElementById('loadingWrap').style.display = 'none';
+        document.getElementById('mainWrap').style.display = 'block';
 
-      renderSpeedControl();
-      enforceSpeedLock();
-      render();
-      loadChapterMedia();
-      startContentLog(chapters[current].title);
+        renderSpeedControl();
+        enforceSpeedLock();
+        render();
+        loadChapterMedia();
+        startContentLog(chapters[current].title);
+      }
+
+      if (session.role !== 'learner' || !session.company_id) {
+        proceedToPlayer();
+        return;
+      }
+
+      sb.from('companies').select('restrict_hours, work_start_time, work_end_time, weekdays_only').eq('id', session.company_id).maybeSingle().then(function (compRes) {
+        var company = compRes.data;
+        if (company && company.restrict_hours && !isWithinAllowedHours(company)) {
+          document.getElementById('loadingWrap').style.display = 'none';
+          document.getElementById('restrictedWrap').style.display = 'block';
+          document.getElementById('restrictedMsg').innerHTML = hoursRestrictionMessage(company) +
+            '<br><br><a href="mypage.html" style="color:#1F3864;font-weight:700">マイページに戻る</a>';
+          return;
+        }
+        proceedToPlayer();
+      });
     });
   });
 }
