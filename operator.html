@@ -155,7 +155,7 @@ td { padding: 10px; border-bottom: 1px solid #f0f1f4; }
       <div class="card">
         <div id="companyListStatus" style="font-size:12.5px;color:#767b85;margin-bottom:10px">読み込み中...</div>
         <table id="companyTable" style="display:none">
-          <tr><th>企業名</th><th>企業管理者数</th><th>受講者数</th><th>登録日</th></tr>
+          <tr><th>企業名</th><th>企業管理者数</th><th>受講者数</th><th>受講可能時間帯</th><th>登録日</th></tr>
         </table>
       </div>
     </div>
@@ -547,7 +547,7 @@ if (session) {
 
       statusEl.textContent = companies.length + '社が登録されています。';
       table.style.display = 'table';
-      var rows = '<tr><th>企業名</th><th>企業管理者数</th><th>受講者数</th><th>登録日</th></tr>';
+      var rows = '<tr><th>企業名</th><th>企業管理者数</th><th>受講者数</th><th>受講可能時間帯</th><th>登録日</th></tr>';
       companies.forEach(function (c) {
         var adminCount = users.filter(function (u) { return u.company_id === c.id && u.role === 'company_admin'; }).length;
         var learnerCount = users.filter(function (u) { return u.company_id === c.id && u.role === 'learner'; }).length;
@@ -556,7 +556,8 @@ if (session) {
         var adminLabel = adminCount > 0
           ? (adminCount + '名')
           : ('<span style="color:#a13d34">0名（未設定）</span> <button class="btn btn-sm" data-add-admin="' + c.id + '">管理者を追加</button>');
-        rows += '<tr><td>' + c.name + '</td><td>' + adminLabel + '</td><td>' + learnerCount + '名</td><td>' + dateStr + '</td></tr>';
+        var hoursLabel = hoursStatusText(c) + ' <button class="btn btn-sm" data-configure-hours="' + c.id + '">設定</button>';
+        rows += '<tr><td>' + c.name + '</td><td>' + adminLabel + '</td><td>' + learnerCount + '名</td><td>' + hoursLabel + '</td><td>' + dateStr + '</td></tr>';
       });
       table.innerHTML = rows;
 
@@ -566,6 +567,92 @@ if (session) {
           var company = companies.find(function (c) { return c.id === companyId; });
           if (company) addAdminToCompany(company);
         });
+      });
+
+      table.querySelectorAll('[data-configure-hours]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var companyId = btn.getAttribute('data-configure-hours');
+          var company = companies.find(function (c) { return c.id === companyId; });
+          if (company) openHoursModal(company);
+        });
+      });
+    });
+  }
+
+  function hoursStatusText(c) {
+    if (!c.restrict_hours) return '制限なし（全日時受講可）';
+    var start = (c.work_start_time || '09:00:00').slice(0, 5);
+    var end = (c.work_end_time || '18:00:00').slice(0, 5);
+    var dayPart = c.weekdays_only === false ? '毎日' : '平日';
+    return dayPart + ' ' + start + '〜' + end;
+  }
+
+  function openHoursModal(company) {
+    var existing = document.getElementById('hoursModalOverlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'hoursModalOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,60,0.35);display:flex;align-items:center;justify-content:center;z-index:1000;';
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#fff;border-radius:12px;padding:24px;width:380px;max-width:90vw;box-shadow:0 8px 30px rgba(20,30,60,0.2);';
+
+    var startVal = (company.work_start_time || '09:00:00').slice(0, 5);
+    var endVal = (company.work_end_time || '18:00:00').slice(0, 5);
+
+    modal.innerHTML =
+      '<div style="font-size:14px;font-weight:700;margin-bottom:14px">「' + company.name + '」の受講可能時間帯</div>' +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:16px">' +
+        '<input type="checkbox" id="hoursEnabled" ' + (company.restrict_hours ? 'checked' : '') + ' style="width:16px;height:16px" />' +
+        '受講時間を制限する（チェックを外すと全日時受講可能）' +
+      '</label>' +
+      '<div style="display:flex;gap:10px;margin-bottom:16px">' +
+        '<div style="flex:1"><label style="display:block;font-size:12px;color:#555;margin-bottom:4px">開始時刻</label>' +
+        '<input type="time" id="hoursStart" value="' + startVal + '" style="width:100%;height:36px;border:1px solid #d8dbe2;border-radius:8px;padding:0 8px;font-size:13px" /></div>' +
+        '<div style="flex:1"><label style="display:block;font-size:12px;color:#555;margin-bottom:4px">終了時刻</label>' +
+        '<input type="time" id="hoursEnd" value="' + endVal + '" style="width:100%;height:36px;border:1px solid #d8dbe2;border-radius:8px;padding:0 8px;font-size:13px" /></div>' +
+      '</div>' +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:20px">' +
+        '<input type="checkbox" id="hoursWeekdaysOnly" ' + (company.weekdays_only !== false ? 'checked' : '') + ' style="width:16px;height:16px" />' +
+        '平日（月〜金）のみ受講可能とする（土日は終日受講不可）' +
+      '</label>' +
+      '<div id="hoursModalStatus" style="font-size:12.5px;color:#a13d34;margin-bottom:10px"></div>' +
+      '<div style="display:flex;justify-content:flex-end;gap:10px">' +
+        '<button class="btn" id="hoursCancelBtn">キャンセル</button>' +
+        '<button class="btn btn-primary" id="hoursSaveBtn">保存</button>' +
+      '</div>';
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    document.getElementById('hoursCancelBtn').addEventListener('click', function () { overlay.remove(); });
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+
+    document.getElementById('hoursSaveBtn').addEventListener('click', function () {
+      var enabled = document.getElementById('hoursEnabled').checked;
+      var start = document.getElementById('hoursStart').value;
+      var end = document.getElementById('hoursEnd').value;
+      var weekdaysOnly = document.getElementById('hoursWeekdaysOnly').checked;
+      var statusEl = document.getElementById('hoursModalStatus');
+
+      if (enabled && (!start || !end)) {
+        statusEl.textContent = '開始時刻・終了時刻を入力してください。';
+        return;
+      }
+
+      sb.from('companies').update({
+        restrict_hours: enabled,
+        work_start_time: start + ':00',
+        work_end_time: end + ':00',
+        weekdays_only: weekdaysOnly
+      }).eq('id', company.id).then(function (res) {
+        if (res.error) {
+          statusEl.textContent = '保存に失敗しました：' + res.error.message;
+          return;
+        }
+        overlay.remove();
+        loadCompanies();
       });
     });
   }
