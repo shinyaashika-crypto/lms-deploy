@@ -133,8 +133,9 @@ if (session) {
 
   function buildCertificateElement(cert) {
     var el = document.createElement('div');
-    el.style.cssText = 'width:1240px;height:1754px;background:#ffffff;padding:110px 120px;box-sizing:border-box;' +
-      'font-family:"Yu Gothic","Hiragino Sans","Noto Sans JP",sans-serif;color:#22252b;position:relative;';
+    el.style.cssText = 'width:1240px;height:1754px;background:#ffffff;padding:90px 120px;box-sizing:border-box;' +
+      'font-family:"Yu Gothic","Hiragino Sans","Noto Sans JP",sans-serif;color:#22252b;position:relative;' +
+      'display:flex;flex-direction:column;';
 
     var issuedDate = fmtDateJP(cert.issued_at || new Date().toISOString());
     var periodStr = (cert.period_start && cert.period_end)
@@ -143,37 +144,47 @@ if (session) {
 
     el.innerHTML =
       '<div style="position:absolute;top:0;left:0;right:0;height:14px;background:#1F3864"></div>' +
-      '<div style="position:absolute;top:64px;right:120px;text-align:right;font-size:19px;line-height:1.8;color:#333">' +
-        '発行：' + issuedDate + '<br>' +
-        '証書番号：' + cert.cert_number +
-      '</div>' +
-      '<div style="text-align:center;margin-top:40px;margin-bottom:60px">' +
-        '<div style="display:inline-flex;align-items:center;gap:14px;margin-bottom:40px">' +
-          '<div style="width:44px;height:44px;border-radius:10px;background:#1F3864;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">LMS</div>' +
-          '<div style="font-size:20px;font-weight:700;color:#1F3864;letter-spacing:1px">Gravata_LMS</div>' +
+      '<div style="position:absolute;bottom:0;left:0;right:0;height:14px;background:#1F3864"></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;">' +
+
+        '<div style="text-align:right;font-size:15px;line-height:1.8;color:#666">' +
+          '発行：' + issuedDate + '　　証書番号：' + cert.cert_number +
         '</div>' +
-        '<div style="font-size:46px;font-weight:700;letter-spacing:26px;padding-left:26px;color:#22252b">修了証</div>' +
-      '</div>' +
-      '<div style="font-size:19px;margin-bottom:8px;color:#444">' + (cert.company_name || '') + ' 御中' + '</div>' +
-      '<div style="font-size:27px;font-weight:700;margin-bottom:56px">' + cert.learner_name + ' 様</div>' +
-      '<div style="font-size:16.5px;line-height:2.15">' +
-        '株式会社Gravataが運営する研修プログラム「Gravata_LMS」において、下記研修の全課程を修了されたことを証明いたします。' +
-      '</div>' +
-      '<div style="font-size:16.5px;line-height:2.15;margin-top:20px">' +
-        '本研修において示された真摯な取り組みと努力に敬意を表するとともに、修得された知識と実践的スキルが、貴社における今後の業務遂行と人材育成に大きく貢献することを確信しております。' +
-      '</div>' +
-      '<div style="text-align:center;font-size:19px;font-weight:700;margin:74px 0 36px;letter-spacing:4px">記</div>' +
-      '<div style="font-size:16.5px;line-height:2.5;padding-left:16px;border-top:1px solid #d8dbe2;border-bottom:1px solid #d8dbe2;padding-top:22px;padding-bottom:22px">' +
-        '受講研修名：' + cert.course_title + '<br>' +
-        '合計受講時間：' + fmtHM(cert.total_seconds) + '<br>' +
-        '受講期間：' + periodStr +
-      '</div>' +
-      '<div style="position:absolute;bottom:110px;right:120px;text-align:right;font-size:15.5px;line-height:1.95;color:#333">' +
-        '〒530-0041　大阪府大阪市北区天神橋6丁目4番11号<br>' +
-        '株式会社Gravata<br>' +
-        '代表取締役　川﨑　幸治' +
-      '</div>' +
-      '<div style="position:absolute;bottom:0;left:0;right:0;height:14px;background:#1F3864"></div>';
+
+        '<div style="text-align:center">' +
+          '<div style="display:inline-flex;align-items:center;gap:14px;margin-bottom:34px">' +
+            '<div style="width:44px;height:44px;border-radius:10px;background:#1F3864;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">LMS</div>' +
+            '<div style="font-size:20px;font-weight:700;color:#1F3864;letter-spacing:1px">Gravata_LMS</div>' +
+          '</div>' +
+          '<div style="font-size:46px;font-weight:700;letter-spacing:26px;padding-left:26px;color:#22252b">修了証</div>' +
+        '</div>' +
+
+        '<div>' +
+          '<div style="font-size:19px;margin-bottom:10px;color:#444">' + (cert.company_name || '') + ' 御中' + '</div>' +
+          '<div style="font-size:27px;font-weight:700">' + cert.learner_name + ' 様</div>' +
+        '</div>' +
+
+        '<div style="font-size:16.5px;line-height:2.15">' +
+          '株式会社Gravataが運営する研修プログラム「Gravata_LMS」において、下記研修の全課程を修了されたことを証明いたします。<br><br>' +
+          '本研修において示された真摯な取り組みと努力に敬意を表するとともに、修得された知識と実践的スキルが、貴社における今後の業務遂行と人材育成に大きく貢献することを確信しております。' +
+        '</div>' +
+
+        '<div>' +
+          '<div style="text-align:center;font-size:19px;font-weight:700;margin-bottom:24px;letter-spacing:4px">記</div>' +
+          '<div style="font-size:16.5px;line-height:2.5;padding-left:16px;border-top:1px solid #d8dbe2;border-bottom:1px solid #d8dbe2;padding-top:22px;padding-bottom:22px">' +
+            '受講研修名：' + cert.course_title + '<br>' +
+            '合計受講時間：' + fmtHM(cert.total_seconds) + '<br>' +
+            '受講期間：' + periodStr +
+          '</div>' +
+        '</div>' +
+
+        '<div style="text-align:right;font-size:15.5px;line-height:1.95;color:#333">' +
+          '〒530-0041　大阪府大阪市北区天神橋6丁目4番11号<br>' +
+          '株式会社Gravata<br>' +
+          '代表取締役　川﨑　幸治' +
+        '</div>' +
+
+      '</div>';
 
     return el;
   }
