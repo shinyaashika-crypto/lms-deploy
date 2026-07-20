@@ -52,11 +52,17 @@ h1 { font-size: 20px; margin: 0 0 20px; color: #22252b; }
 .course .info { flex: 1; min-width: 0; }
 .course .title { font-size: 14.5px; font-weight: 700; margin-bottom: 3px; }
 .course .meta { font-size: 12px; color: #767b85; }
+.course .meta.done { color: #1F7A3D; font-weight: 700; }
 .btn { height: 32px; padding: 0 14px; font-size: 12.5px; border-radius: 8px; border: 1px solid #d8dbe2; background: #fff; color: #22252b; cursor: pointer; white-space: nowrap; }
 .btn:hover { background: #f4f6fb; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.btn.primary { background: #1F3864; color: #fff; border-color: #1F3864; }
+.btn.primary:hover { background: #16294c; }
 .empty { text-align: center; color: #9296a0; font-size: 13px; padding: 40px 0; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="auth.js"></script>
 </head>
 <body>
@@ -112,13 +118,128 @@ if (session) {
 
   var icons = ['📊', '☁️', '🤖', '📚', '💡', '🛠️'];
 
-  sb.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: true }).then(function (res) {
+  function fmtHM(totalSeconds) {
+    var totalMinutes = Math.round((totalSeconds || 0) / 60);
+    var h = Math.floor(totalMinutes / 60);
+    var m = totalMinutes % 60;
+    return h + '時間' + m + '分';
+  }
+
+  function fmtDateJP(d) {
+    if (!d) return '-';
+    var dt = new Date(d);
+    return dt.getFullYear() + '年' + (dt.getMonth() + 1) + '月' + dt.getDate() + '日';
+  }
+
+  function buildCertificateElement(cert) {
+    var el = document.createElement('div');
+    el.style.cssText = 'width:1240px;height:1754px;background:#ffffff;padding:110px 120px;box-sizing:border-box;' +
+      'font-family:"Yu Gothic","Hiragino Sans","Noto Sans JP",sans-serif;color:#22252b;position:relative;';
+
+    var issuedDate = fmtDateJP(cert.issued_at || new Date().toISOString());
+    var periodStr = (cert.period_start && cert.period_end)
+      ? (fmtDateJP(cert.period_start) + ' ～ ' + fmtDateJP(cert.period_end))
+      : '-';
+
+    el.innerHTML =
+      '<div style="position:absolute;top:0;left:0;right:0;height:14px;background:#1F3864"></div>' +
+      '<div style="position:absolute;top:64px;right:120px;text-align:right;font-size:19px;line-height:1.8;color:#333">' +
+        '発行：' + issuedDate + '<br>' +
+        '証書番号：' + cert.cert_number +
+      '</div>' +
+      '<div style="text-align:center;margin-top:40px;margin-bottom:60px">' +
+        '<div style="display:inline-flex;align-items:center;gap:14px;margin-bottom:40px">' +
+          '<div style="width:44px;height:44px;border-radius:10px;background:#1F3864;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">LMS</div>' +
+          '<div style="font-size:20px;font-weight:700;color:#1F3864;letter-spacing:1px">Gravata_LMS</div>' +
+        '</div>' +
+        '<div style="font-size:46px;font-weight:700;letter-spacing:26px;padding-left:26px;color:#22252b">修了証</div>' +
+      '</div>' +
+      '<div style="font-size:19px;margin-bottom:8px;color:#444">' + (cert.company_name || '') + ' 御中' + '</div>' +
+      '<div style="font-size:27px;font-weight:700;margin-bottom:56px">' + cert.learner_name + ' 様</div>' +
+      '<div style="font-size:16.5px;line-height:2.15">' +
+        '株式会社Gravataが運営する研修プログラム「Gravata_LMS」において、下記研修の全課程を修了されたことを証明いたします。' +
+      '</div>' +
+      '<div style="font-size:16.5px;line-height:2.15;margin-top:20px">' +
+        '本研修において示された真摯な取り組みと努力に敬意を表するとともに、修得された知識と実践的スキルが、貴社における今後の業務遂行と人材育成に大きく貢献することを確信しております。' +
+      '</div>' +
+      '<div style="text-align:center;font-size:19px;font-weight:700;margin:74px 0 36px;letter-spacing:4px">記</div>' +
+      '<div style="font-size:16.5px;line-height:2.5;padding-left:16px;border-top:1px solid #d8dbe2;border-bottom:1px solid #d8dbe2;padding-top:22px;padding-bottom:22px">' +
+        '受講研修名：' + cert.course_title + '<br>' +
+        '合計受講時間：' + fmtHM(cert.total_seconds) + '<br>' +
+        '受講期間：' + periodStr +
+      '</div>' +
+      '<div style="position:absolute;bottom:110px;right:120px;text-align:right;font-size:15.5px;line-height:1.95;color:#333">' +
+        '〒530-0041　大阪府大阪市北区天神橋6丁目4番11号<br>' +
+        '株式会社Gravata<br>' +
+        '代表取締役　川﨑　幸治' +
+      '</div>' +
+      '<div style="position:absolute;bottom:0;left:0;right:0;height:14px;background:#1F3864"></div>';
+
+    return el;
+  }
+
+  function downloadCertificatePdf(cert) {
+    var el = buildCertificateElement(cert);
+    el.style.position = 'fixed';
+    el.style.left = '-99999px';
+    el.style.top = '0';
+    document.body.appendChild(el);
+
+    return html2canvas(el, { scale: 1, backgroundColor: '#ffffff' }).then(function (canvas) {
+      document.body.removeChild(el);
+      var imgData = canvas.toDataURL('image/png');
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var pdf = new jsPDFCtor({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      var pageWidth = pdf.internal.pageSize.getWidth();
+      var pageHeight = pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+      pdf.save(cert.learner_name + '_修了証.pdf');
+    });
+  }
+
+  function issueCertificate(course, totalSeconds, periodStart, periodEnd, callback) {
+    sb.from('certificates').select('*').eq('learner_id', session.id).eq('course_id', course.id).maybeSingle().then(function (existing) {
+      if (existing.error) { callback(existing.error.message); return; }
+      if (existing.data) {
+        downloadCertificatePdf(existing.data).then(function () { callback(); });
+        return;
+      }
+      sb.from('certificates').insert({
+        learner_id: session.id,
+        learner_name: session.name,
+        company_name: session.company_name || '-',
+        course_id: course.id,
+        course_title: course.title,
+        total_seconds: totalSeconds,
+        period_start: periodStart ? periodStart.toISOString() : null,
+        period_end: periodEnd ? periodEnd.toISOString() : null
+      }).select().then(function (res) {
+        if (res.error) { callback(res.error.message); return; }
+        downloadCertificatePdf(res.data[0]).then(function () { callback(); });
+      });
+    });
+  }
+
+  Promise.all([
+    sb.from('courses').select('*').eq('is_active', true).order('created_at', { ascending: true }),
+    sb.from('course_chapters').select('*'),
+    sb.from('session_logs').select('*').eq('learner_name', session.name).eq('company_name', session.company_name || '-')
+  ]).then(function (results) {
+    var coursesRes = results[0];
+    var chaptersRes = results[1];
+    var logsRes = results[2];
+
     var listEl = document.getElementById('courseList');
-    if (res.error) {
-      listEl.innerHTML = '<div class="empty">講座の取得に失敗しました：' + res.error.message + '</div>';
+
+    if (coursesRes.error) {
+      listEl.innerHTML = '<div class="empty">講座の取得に失敗しました：' + coursesRes.error.message + '</div>';
       return;
     }
-    var courses = res.data || [];
+
+    var courses = coursesRes.data || [];
+    var allChapters = chaptersRes.data || [];
+    var logs = logsRes.data || [];
+
     document.getElementById('statCourseCount').textContent = courses.length;
 
     if (!courses.length) {
@@ -128,15 +249,52 @@ if (session) {
 
     listEl.innerHTML = '';
     courses.forEach(function (c, i) {
+      var chaptersForCourse = allChapters.filter(function (ch) { return ch.course_id === c.id; });
+      var logsForCourse = logs.filter(function (l) { return l.course_key === c.course_key; });
+      var watchedTitles = {};
+      logsForCourse.forEach(function (l) { if (l.ended_at) watchedTitles[l.content_name] = true; });
+      var isCompleted = chaptersForCourse.length > 0 && chaptersForCourse.every(function (ch) { return watchedTitles[ch.title]; });
+
       var div = document.createElement('div');
       div.className = 'course';
       div.innerHTML =
         '<div class="icon">' + (icons[i % icons.length]) + '</div>' +
         '<div class="info">' +
           '<div class="title">' + c.title + '</div>' +
-          '<div class="meta">受講可能</div>' +
-        '</div>' +
-        '<a class="btn" href="course.html?course=' + encodeURIComponent(c.course_key) + '" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">続きから</a>';
+          '<div class="meta' + (isCompleted ? ' done' : '') + '">' + (isCompleted ? '修了済み' : '受講可能') + '</div>' +
+        '</div>';
+
+      var continueBtn = document.createElement('a');
+      continueBtn.className = 'btn';
+      continueBtn.href = 'course.html?course=' + encodeURIComponent(c.course_key);
+      continueBtn.style.cssText = 'text-decoration:none;display:inline-flex;align-items:center;justify-content:center;margin-left:8px;flex-shrink:0';
+      continueBtn.textContent = '続きから';
+      div.appendChild(continueBtn);
+
+      if (isCompleted) {
+        var totalSeconds = logsForCourse.reduce(function (sum, l) { return sum + (l.video_time_sec || 0); }, 0);
+        var startTimes = logsForCourse.map(function (l) { return l.started_at; }).filter(Boolean);
+        var endTimes = logsForCourse.filter(function (l) { return l.ended_at; }).map(function (l) { return l.ended_at; });
+        var periodStart = startTimes.length ? new Date(Math.min.apply(null, startTimes.map(function (d) { return new Date(d).getTime(); }))) : null;
+        var periodEnd = endTimes.length ? new Date(Math.max.apply(null, endTimes.map(function (d) { return new Date(d).getTime(); }))) : null;
+
+        var certBtn = document.createElement('button');
+        certBtn.className = 'btn primary';
+        certBtn.style.cssText = 'margin-left:8px;flex-shrink:0';
+        certBtn.textContent = '修了証を発行する';
+        certBtn.addEventListener('click', function () {
+          certBtn.disabled = true;
+          var originalText = certBtn.textContent;
+          certBtn.textContent = '発行中...';
+          issueCertificate(c, totalSeconds, periodStart, periodEnd, function (err) {
+            certBtn.disabled = false;
+            certBtn.textContent = originalText;
+            if (err) alert('修了証の発行に失敗しました：' + err);
+          });
+        });
+        div.appendChild(certBtn);
+      }
+
       listEl.appendChild(div);
     });
   });
