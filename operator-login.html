@@ -94,12 +94,12 @@ body {
 
   <form id="loginForm">
     <div class="field">
-      <label for="email">メールアドレス</label>
-      <input id="email" type="email" placeholder="operator@company.jp" autocomplete="email" value="operator@sample.co.jp" />
+      <label for="email">ログインID</label>
+      <input id="email" type="text" placeholder="ログインIDを入力" autocomplete="username" value="Gravata_admin" />
     </div>
     <div class="field">
       <label for="password">パスワード</label>
-      <input id="password" type="password" placeholder="パスワードを入力" autocomplete="current-password" value="operator1234" />
+      <input id="password" type="password" placeholder="パスワードを入力" autocomplete="current-password" value="Osaka3150" />
     </div>
     <div class="row">
       <label class="remember"><input type="checkbox" checked style="width:14px;height:14px;margin:0" /> ログイン状態を保持する</label>
@@ -112,7 +112,7 @@ body {
   <a class="back-link" href="index.html">受講者の方はこちら（受講者用ログイン）</a>
   <a class="back-link" href="admin-login.html">企業管理者の方はこちら（管理者用ログイン）</a>
 
-  <div class="demo-note">※ デモ用アカウント：operator@sample.co.jp / operator1234</div>
+  <div class="demo-note">※ デモ用アカウント：Gravata_admin / Osaka3150</div>
 
   <div class="footer-links">
     <a href="#">利用規約</a>・<a href="#">プライバシーポリシー</a>・<a href="#">お問い合わせ</a>
@@ -128,7 +128,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
   errBox.style.display = 'none';
 
   if (!email || !pw) {
-    errBox.textContent = 'メールアドレスとパスワードを入力してください。';
+    errBox.textContent = 'ログインIDとパスワードを入力してください。';
     errBox.style.display = 'block';
     return;
   }
@@ -143,13 +143,13 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
       btn.textContent = '運用者としてログイン';
 
       if (res.error || !res.data) {
-        errBox.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+        errBox.textContent = 'ログインIDまたはパスワードが正しくありません。';
         errBox.style.display = 'block';
         return;
       }
       var u = res.data;
       if (u.password_hash !== hash) {
-        errBox.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+        errBox.textContent = 'ログインIDまたはパスワードが正しくありません。';
         errBox.style.display = 'block';
         return;
       }
